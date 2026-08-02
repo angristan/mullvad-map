@@ -2,7 +2,7 @@
 
 An unofficial interactive map of Mullvad VPN infrastructure. Explore relay locations, status, ownership, providers, listed capacity, capabilities, and experimental browser latency estimates.
 
-**Live:** [mullvad-map.angristan.workers.dev](https://mullvad-map.angristan.workers.dev)
+**Live:** [mullvad.stanislas.cloud](https://mullvad.stanislas.cloud)
 
 ## Features
 

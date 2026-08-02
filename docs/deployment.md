@@ -1,6 +1,6 @@
 # Deployment
 
-This repository's `main` branch is connected to Cloudflare Workers Builds. Successful pushes deploy to `mullvad-map.angristan.workers.dev`. A separate `Deploy main` hook is stored only in the Cloudflare dashboard for explicit webhook-triggered rebuilds.
+This repository's `main` branch is connected to Cloudflare Workers Builds. Successful pushes deploy to `mullvad.stanislas.cloud`. The `workers.dev` and preview URLs are disabled. A separate `Deploy main` hook is stored only in the Cloudflare dashboard for explicit webhook-triggered rebuilds.
 
 ## Prerequisites
 
@@ -37,11 +37,11 @@ bun run deploy
 
 This builds the client and Worker, then deploys both through the project-pinned Wrangler version.
 
-Smoke-test the URL printed by Wrangler:
+Smoke-test the configured custom domain:
 
 ```bash
-curl -fsS https://<worker>.<subdomain>.workers.dev/api/health
-curl -fsS https://<worker>.<subdomain>.workers.dev/api/relays > /dev/null
+curl -fsS https://mullvad.stanislas.cloud/api/health
+curl -fsS https://mullvad.stanislas.cloud/api/relays > /dev/null
 ```
 
 Check the globe, filters, relay drawer, and one explicitly authorized latency run in a browser.
