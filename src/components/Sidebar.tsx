@@ -162,11 +162,6 @@ export function Sidebar({
               <Text size="xs" c="dark.2">
                 {summary.total.toLocaleString()} relays · updated {formatDate(response.data.sourceUpdatedAt)}
               </Text>
-              {response.meta.cache === "stale" && (
-                <Badge size="xs" color="yellow" variant="light">
-                  refreshing
-                </Badge>
-              )}
             </Group>
           ) : null}
         </Box>
