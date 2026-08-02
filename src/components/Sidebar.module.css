@@ -3,8 +3,8 @@
   z-index: 4;
   top: 12px;
   bottom: 12px;
-  left: 12px;
-  width: 412px;
+  left: var(--desktop-sidebar-offset);
+  width: var(--desktop-sidebar-width);
   overflow: hidden;
   color: var(--mantine-color-gray-0);
   background: #071923;

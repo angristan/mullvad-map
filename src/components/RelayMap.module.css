@@ -75,6 +75,12 @@
   }
 }
 
+@media (min-width: 48.01em) {
+  .root {
+    left: calc(var(--desktop-sidebar-offset) + var(--desktop-sidebar-width));
+  }
+}
+
 .error {
   position: absolute;
   z-index: 3;
