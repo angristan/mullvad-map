@@ -76,6 +76,7 @@
 }
 
 .search {
+  min-width: 0;
   flex: 1;
 }
 
@@ -266,6 +267,41 @@
   background: rgb(255 255 255 / 4%);
 }
 
+.mobileLocationsContent {
+  color: var(--mantine-color-gray-0);
+  background: #071923;
+  border: 1px solid rgb(255 255 255 / 10%);
+  box-shadow: none;
+}
+
+.mobileLocationsDrawerHeader {
+  min-height: 64px;
+  padding: 14px 16px 10px;
+  background: #071923;
+}
+
+.mobileLocationsDrawerTitle {
+  font-size: 18px;
+  font-weight: 750;
+}
+
+.mobileLocationsDrawerBody {
+  height: calc(100% - 64px);
+  padding: 0 14px max(14px, env(safe-area-inset-bottom));
+  overflow: hidden;
+}
+
+.mobileLocationsSearch {
+  flex: 0 0 auto;
+  margin-bottom: 8px;
+}
+
+.mobileLocationsScroll {
+  min-height: 0;
+  flex: 1;
+  border-bottom: 1px solid rgb(255 255 255 / 6%);
+}
+
 .retry {
   width: fit-content;
   color: var(--mantine-primary-color-filled);
@@ -307,6 +343,18 @@
 
   .locations {
     min-height: 58px;
+  }
+}
+
+@media (max-width: 24em) {
+  .locationTableHeader,
+  .locationRow {
+    grid-template-columns: 22px minmax(0, 1fr) 44px 52px 38px;
+    column-gap: 3px;
+  }
+
+  .sortButton {
+    font-size: 11px;
   }
 }
 

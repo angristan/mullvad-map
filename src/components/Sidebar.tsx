@@ -5,6 +5,7 @@ import {
   Box,
   Button,
   Divider,
+  Drawer,
   Group,
   Loader,
   Paper,
@@ -26,9 +27,10 @@ import {
   IconBrandGithub,
   IconChevronRight,
   IconInfoCircle,
+  IconList,
   IconSearch,
 } from "@tabler/icons-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { countryFlag } from "../lib/country-flag";
 import { hasActiveFilters } from "../lib/filter-relays";
 import {
@@ -94,6 +96,7 @@ export function Sidebar({
   const hasLatency = latencyResults.size > 0;
   const [sortKey, setSortKey] = useState<LocationSortKey>("relays");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+  const [mobileLocationsOpened, setMobileLocationsOpened] = useState(false);
   const sorted = useMemo(
     () => sortLocations(locations, sortKey, sortDirection, latencyResults),
     [latencyResults, locations, sortDirection, sortKey],
@@ -108,6 +111,10 @@ export function Sidebar({
   const bestLocation = bestLatency
     ? locations.find((location) => location.key === bestLatency.locationKey)
     : undefined;
+
+  useEffect(() => {
+    if (!isMobile) setMobileLocationsOpened(false);
+  }, [isMobile]);
 
   const changeSort = (key: LocationSortKey) => {
     if (key === sortKey) {
@@ -186,6 +193,17 @@ export function Sidebar({
           />
           {isMobile && (
             <>
+              <ActionIcon
+                size={36}
+                variant="light"
+                color="relay"
+                aria-label={`Browse ${locations.length} location${locations.length === 1 ? "" : "s"}`}
+                title="Browse locations"
+                disabled={loading}
+                onClick={() => setMobileLocationsOpened(true)}
+              >
+                <IconList size={18} />
+              </ActionIcon>
               <LatencyProbeControl
                 isMobile
                 status={latencyStatus}
@@ -284,32 +302,13 @@ export function Sidebar({
               onSort={changeSort}
             />
             <ScrollArea className={classes.locationScroll} scrollbarSize={5} type="hover">
-              {loading ? (
-                <Stack gap={6}>
-                  {Array.from({ length: 5 }, (_, index) => (
-                    <Skeleton key={index} height={48} radius="md" />
-                  ))}
-                </Stack>
-              ) : sorted.length > 0 ? (
-                sorted.map((location) => (
-                  <LocationRow
-                    key={location.key}
-                    location={location}
-                    latency={latencyResults.get(location.key)}
-                    latencyScale={latencyScale}
-                    onSelect={onSelect}
-                  />
-                ))
-              ) : (
-                <Paper p="md" radius="md" className={classes.empty}>
-                  <Text size="sm" fw={650}>
-                    No relays found
-                  </Text>
-                  <Text size="xs" c="dark.2">
-                    Try a broader search or reset the filters.
-                  </Text>
-                </Paper>
-              )}
+              <LocationRows
+                locations={sorted}
+                loading={loading}
+                latencyResults={latencyResults}
+                latencyScale={latencyScale}
+                onSelect={onSelect}
+              />
             </ScrollArea>
           </Stack>
         )}
@@ -337,6 +336,60 @@ export function Sidebar({
           </Text>
         </Group>
       </Stack>
+
+      {isMobile && (
+        <Drawer
+          opened={mobileLocationsOpened}
+          onClose={() => setMobileLocationsOpened(false)}
+          position="bottom"
+          size="80%"
+          offset={8}
+          radius="sm"
+          title={`Locations · ${locations.length}`}
+          overlayProps={{ backgroundOpacity: 0.22 }}
+          classNames={{
+            content: classes.mobileLocationsContent,
+            header: classes.mobileLocationsDrawerHeader,
+            title: classes.mobileLocationsDrawerTitle,
+            body: classes.mobileLocationsDrawerBody,
+          }}
+        >
+          <Stack gap={0} h="100%">
+            <TextInput
+              className={classes.mobileLocationsSearch}
+              aria-label="Search locations"
+              placeholder="City, country, provider, hostname…"
+              leftSection={<IconSearch size={16} />}
+              value={filters.query}
+              onChange={(event) =>
+                onFiltersChange({ ...filters, query: event.currentTarget.value })
+              }
+            />
+            <LocationTableHeader
+              sortKey={sortKey}
+              sortDirection={sortDirection}
+              latencyAvailable={hasLatency || latencyStatus === "probing"}
+              onSort={changeSort}
+            />
+            <ScrollArea
+              className={classes.mobileLocationsScroll}
+              scrollbarSize={5}
+              type="hover"
+            >
+              <LocationRows
+                locations={sorted}
+                loading={loading}
+                latencyResults={latencyResults}
+                latencyScale={latencyScale}
+                onSelect={(key) => {
+                  setMobileLocationsOpened(false);
+                  onSelect(key);
+                }}
+              />
+            </ScrollArea>
+          </Stack>
+        </Drawer>
+      )}
     </Paper>
   );
 }
@@ -447,6 +500,53 @@ function Stat({
       </Group>
     </Box>
   );
+}
+
+function LocationRows({
+  locations,
+  loading,
+  latencyResults,
+  latencyScale,
+  onSelect,
+}: {
+  locations: ReadonlyArray<FilteredLocation>;
+  loading: boolean;
+  latencyResults: ReadonlyMap<string, LatencyResult>;
+  latencyScale: LatencyScale | null;
+  onSelect: (key: string) => void;
+}) {
+  if (loading) {
+    return (
+      <Stack gap={6}>
+        {Array.from({ length: 5 }, (_, index) => (
+          <Skeleton key={index} height={48} radius="md" />
+        ))}
+      </Stack>
+    );
+  }
+
+  if (locations.length === 0) {
+    return (
+      <Paper p="md" radius="md" className={classes.empty}>
+        <Text size="sm" fw={650}>
+          No relays found
+        </Text>
+        <Text size="xs" c="dark.2">
+          Try a broader search or reset the filters.
+        </Text>
+      </Paper>
+    );
+  }
+
+  return locations.map((location) => (
+    <LocationRow
+      key={location.key}
+      location={location}
+      latency={latencyResults.get(location.key)}
+      latencyScale={latencyScale}
+      onSelect={onSelect}
+    />
+  ));
 }
 
 function LocationTableHeader({
