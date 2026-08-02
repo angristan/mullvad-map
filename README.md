@@ -1,99 +1,88 @@
-# Mullvad Relay Atlas
+# Mullvad Relay Map
 
-A fast, unofficial map of Mullvad VPN infrastructure. Explore relay status, location, ownership, provider, type, speed, DAITA support, addresses, and boot method.
+An unofficial interactive map of Mullvad VPN infrastructure. Explore relay locations, status, ownership, providers, listed capacity, capabilities, and experimental browser latency estimates.
 
-## Stack
+**Live:** [mullvad-map.angristan.workers.dev](https://mullvad-map.angristan.workers.dev)
 
-- React 19 and Mantine 9
-- MapLibre GL JS with OpenFreeMap
-- TanStack Query for browser server state
-- Cloudflare Worker and Static Assets through the Cloudflare Vite plugin
-- Effect 4 for upstream decoding, typed failures, and cache orchestration
-- Workers KV for the relay snapshot cache
-- Workers Rate Limiting for API protection
+## Features
+
+- Responsive MapLibre globe with one node per matching relay location
+- Search and filters for status, relay type, ownership, provider, and DAITA
+- Sortable location table with relay count, listed capacity, and estimated latency
+- Relay-level details including addresses, port speed, provider, STBoot, and notices
+- Cloudflare Worker API with runtime validation, KV caching, and native rate limiting
+
+## Experimental latency testing
+
+Latency testing is manual and intended only for relative ranking. Starting a test makes three direct TLS connection attempts for each matching active WireGuard location. Tests run six locations at a time and time out after 2.5 seconds.
+
+For one relay in each location, the browser times expected-to-fail TLS connections to its literal IPv4 address on port 443:
 
 ```text
-Browser
-  ├─ static files ───────────────> Cloudflare Asset Worker
-  └─ GET /api/relays
-       └─ native rate limiter
-            └─ Effect relay service
-                 ├─ fresh KV value ─────────────> response
-                 ├─ stale KV value ─────────────> response + waitUntil(refresh)
-                 └─ cache miss ─> Mullvad APIs ─> KV ─> response
+estimated RTT = median connection duration / 4
 ```
 
-Static files bypass Worker code. Only `/api/*` invokes the Worker.
+Mullvad relays can observe the connection's network egress IP and timing. TLS currently fails before an HTTP request is sent, but this depends on Mullvad's port behavior. The result is not ICMP latency and does not measure VPN tunnel performance. Browser networking changes can invalidate the calibration.
 
-## Run locally
+Filtering before starting a test reduces the number of direct connections. A full run attempts `3 × matching locations` connections.
+
+## Local development
+
+Requirements: [Bun](https://bun.sh/) 1.3.9.
 
 ```bash
-bun install
+bun install --frozen-lockfile
 bun run typegen
 bun run dev
 ```
 
-Open the local URL printed by Vite. It binds IPv4 explicitly and automatically selects the next available port.
+Open the IPv4 URL printed by Vite. The Cloudflare Vite plugin runs the API in `workerd`; local KV data is persisted by Wrangler.
 
-The Cloudflare Vite plugin runs the API in `workerd`. Local KV data is persisted by Wrangler. The native rate-limit binding is configured, but local behavior is not a substitute for a production rate-limit smoke test.
-
-## Validate
+## Validation
 
 ```bash
 bun run check
 ```
 
-This command checks generated binding types, runs domain and Workerd integration tests, builds the client and Worker, and performs a Wrangler dry run.
+This checks generated Worker types, runs unit and Workerd integration tests, builds the client and Worker, and performs a Wrangler dry run.
 
-## Cloudflare setup
+## Architecture
 
-`wrangler.jsonc` contains a placeholder KV namespace ID. Before the first deployment:
-
-```bash
-bunx wrangler kv namespace create RELAY_CACHE
+```text
+Browser
+  ├─ static files ───────────────> Cloudflare Static Assets
+  ├─ map/style/tile requests ────> OpenFreeMap
+  ├─ optional TLS probes ────────> Mullvad relays
+  └─ /api/*
+       └─ native rate limiter
+            └─ Effect relay service
+                 ├─ fresh KV snapshot ─────────> response
+                 ├─ stale KV snapshot ─────────> response + background refresh
+                 └─ cache miss ─> Mullvad APIs ─> KV ─> response
 ```
 
-Replace `00000000000000000000000000000000` in `wrangler.jsonc` with the returned namespace ID. Creating the namespace and deploying are remote writes.
+Static files bypass Worker execution. Only `/api/*` invokes Hono. See [Architecture](docs/architecture.md) for cache behavior, API details, and latency visualization.
 
-Then deploy:
+## Deployment
 
-```bash
-bun run deploy
-```
+The project deploys as one Cloudflare Worker with Static Assets. See [Deployment](docs/deployment.md) for manual setup, Workers Builds automatic deployment, smoke tests, and rollback.
 
-The Worker is configured for `workers.dev` and preview URLs. Logs sample all invocations and traces sample 10%; review these rates against real traffic and cost before production.
+## Data and privacy
 
-## Cache and failure behavior
-
-- KV snapshots are fresh for 15 minutes.
-- Stale snapshots remain available for up to seven days.
-- Stale requests return immediately while `ctx.waitUntil()` refreshes the cache.
-- A cold cache waits for Mullvad's APIs.
-- Invalid upstream and KV payloads are decoded with Effect Schema.
-- Client requests are limited to 120 per minute per IP and Cloudflare location.
-- API responses support ETags and short browser caching.
-
-KV is eventually consistent. Multiple Cloudflare locations can refresh an expired snapshot at approximately the same time. The isolate-local in-flight promise only deduplicates refreshes within one warm isolate.
-
-## Estimated latency
-
-Latency testing is manual and experimental. The Worker orders active WireGuard locations by distance from the visitor's Cloudflare edge location. The browser tests every matching active WireGuard location using one relay per location.
-
-Each test makes three TLS connection attempts to the relay's literal IPv4 address on port 443. Mullvad serves an obfuscation protocol rather than HTTPS on that port, so rejection is expected. The UI estimates network RTT as one quarter of the median rejection duration, based on local calibration against ICMP ping. No HTTP request reaches the relay.
-
-Globe node size reflects the square-root-scaled sum of active relays' listed port capacity, bounded to preserve readability. This is nominal capacity, not live utilization or guaranteed throughput. When testing starts, globe nodes turn gray and update as each result arrives. Completed nodes use a logarithmic green-to-pink gradient normalized between the run's 10th and 90th latency percentiles, and the location list progressively sorts by estimated RTT. The estimate is useful for ranking but is not ICMP ping. Browser networking changes or Mullvad port behavior can invalidate the calibration. It has been smoke-tested in Chromium; Firefox and Safari still need validation. If Cloudflare edge coordinates are unavailable, the Worker returns a geographically distributed candidate order.
-
-## Mullvad data
-
-The Worker joins two official Mullvad endpoints:
+The Worker joins two Mullvad-hosted endpoints used by Mullvad's app and website:
 
 | Endpoint | Used for |
 | --- | --- |
 | [`/app/v1/relays`](https://api.mullvad.net/app/v1/relays) | City coordinates |
-| [`/www/relays/all/`](https://api.mullvad.net/www/relays/all/) | WireGuard and bridge status, ownership, provider, speed, STBoot, DAITA, IPs, and messages |
+| [`/www/relays/all/`](https://api.mullvad.net/www/relays/all/) | Relay status, ownership, provider, speed, capabilities, addresses, and notices |
 
-Mullvad also provides a third-party-oriented [public WireGuard API](https://api.mullvad.net/public/relays/wireguard/v2), but it does not include bridge relays. The app and website endpoints can change, so all responses are decoded at runtime and stale KV data is retained for recovery.
+These endpoints can change, so responses are decoded at runtime and stale KV data is retained for recovery.
 
-No account or VPN connection data is collected. The rate-limit key uses Cloudflare's connecting IP only inside the native rate-limit binding. The application does not store it.
+- Cloudflare processes normal site and API requests.
+- OpenFreeMap receives browser requests for map styles, sprites, and tiles.
+- The Worker uses the connecting IP only as a native rate-limit key and does not persist it.
+- Cloudflare edge coordinates are used only to order latency candidates and are not persisted.
+- User-initiated latency tests connect directly to Mullvad relays as described above.
+- Workers Logs and traces follow the sampling configured in `wrangler.jsonc`.
 
 This project is not affiliated with or endorsed by Mullvad VPN AB.

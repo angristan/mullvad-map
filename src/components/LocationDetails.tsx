@@ -13,6 +13,7 @@ import {
   Title,
 } from "@mantine/core";
 import { IconBolt, IconServer } from "@tabler/icons-react";
+import { countryFlag } from "../lib/country-flag";
 import type { LatencyResult } from "../lib/latency";
 import type { FilteredLocation, RelayServer } from "../shared/relay";
 import classes from "./LocationDetails.module.css";
@@ -43,9 +44,9 @@ export function LocationDetails({
       opened={opened}
       onClose={onClose}
       position={isMobile ? "bottom" : "right"}
-      size={isMobile ? "76%" : 410}
+      size={isMobile ? "80%" : 440}
       offset={isMobile ? 8 : 16}
-      radius="xl"
+      radius="sm"
       title={
         <Group gap="sm" wrap="nowrap">
           <Text className={classes.flag} aria-hidden="true">
@@ -72,13 +73,13 @@ export function LocationDetails({
         <Divider />
 
         {latency && (
-          <Paper className={classes.latencyCard} p="sm" radius="md">
+          <Paper className={classes.latencyCard} p="sm" radius="sm">
             <Group justify="space-between" wrap="nowrap">
               <Group gap="sm" wrap="nowrap">
                 <IconBolt size={18} />
                 <div>
                   <Text className={classes.latencyLabel}>Estimated latency</Text>
-                  <Text size="11px" c="dark.2">
+                  <Text size="13px" c="gray.5" fw={600}>
                     Tested via {latency.serverHostname}
                   </Text>
                 </div>
@@ -89,7 +90,7 @@ export function LocationDetails({
         )}
 
         <ScrollArea className={classes.scroll} scrollbarSize={6} type="hover">
-          <Accordion variant="separated" radius="md">
+          <Accordion variant="default" radius="sm">
             {location.servers.map((server) => (
               <ServerItem key={server.hostname} server={server} />
             ))}
@@ -118,14 +119,14 @@ function ServerItem({ server }: { server: RelayServer }) {
       >
         <Group justify="space-between" gap="xs" wrap="nowrap">
           <Box className={classes.serverName}>
-            <Text size="sm" fw={700} truncate>
+            <Text size="sm" fw={750} truncate>
               {server.hostname}
             </Text>
-            <Text size="11px" c="dark.2" truncate>
+            <Text size="13px" c="gray.5" fw={600} truncate>
               {server.provider}
             </Text>
           </Box>
-          <Text size="11px" c="dark.2" className={classes.speed}>
+          <Text size="13px" c="gray.5" fw={650} className={classes.speed}>
             {server.speedGbps} Gbps
           </Text>
         </Group>
@@ -136,7 +137,7 @@ function ServerItem({ server }: { server: RelayServer }) {
             <Badge size="sm" variant="light">
               {server.type === "wireguard" ? "WireGuard" : "Bridge"}
             </Badge>
-            <Badge size="sm" variant="light" color={server.owned ? "atlas" : "gray"}>
+            <Badge size="sm" variant="light" color={server.owned ? "relay" : "gray"}>
               {server.owned ? "Owned" : "Rented"}
             </Badge>
             {server.daita && (
@@ -173,12 +174,4 @@ function DataRow({ label, value }: { label: string; value: string }) {
       </Text>
     </Group>
   );
-}
-
-function countryFlag(code: string) {
-  return code
-    .toUpperCase()
-    .split("")
-    .map((character) => String.fromCodePoint(127397 + character.charCodeAt(0)))
-    .join("");
 }

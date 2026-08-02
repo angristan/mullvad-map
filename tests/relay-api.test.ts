@@ -60,6 +60,45 @@ describe("relay API", () => {
     });
   });
 
+  it("refreshes stale snapshots within each request context", async () => {
+    const upstreamFetch = mockMullvadUpstream();
+    const seedResponse = await exports.default.fetch("http://example.com/api/relays", {
+      headers: { "cf-connecting-ip": `seed-${crypto.randomUUID()}` },
+    });
+    const seedPayload = (await seedResponse.json()) as RelayApiResponse;
+    await env.RELAY_CACHE.put(
+      CACHE_KEY,
+      JSON.stringify({
+        expiresAt: Date.now() - 1,
+        snapshot: seedPayload.data,
+      }),
+    );
+    upstreamFetch.mockRestore();
+    let releaseUpstream!: () => void;
+    const upstreamGate = new Promise<void>((resolve) => {
+      releaseUpstream = () => resolve();
+    });
+    const concurrentFetch = mockMullvadUpstream(upstreamGate);
+    const responsesPromise = Promise.all(
+      ["first", "second"].map((request) =>
+        exports.default.fetch("http://example.com/api/relays", {
+          headers: { "cf-connecting-ip": `${request}-${crypto.randomUUID()}` },
+        }),
+      ),
+    );
+
+    await vi.waitFor(() => expect(concurrentFetch).toHaveBeenCalledTimes(4));
+    releaseUpstream();
+    const responses = await responsesPromise;
+
+    expect(responses.map((response) => response.status)).toEqual([200, 200]);
+    expect(responses.map((response) => response.headers.get("x-relay-cache"))).toEqual([
+      "stale",
+      "stale",
+    ]);
+    expect(concurrentFetch).toHaveBeenCalledTimes(4);
+  });
+
   it("exposes an uncached health route", async () => {
     const response = await exports.default.fetch("http://example.com/api/health");
     expect(response.status).toBe(200);
@@ -68,10 +107,11 @@ describe("relay API", () => {
   });
 });
 
-function mockMullvadUpstream() {
+function mockMullvadUpstream(gate?: Promise<void>) {
   return vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
     const request = new Request(input, init);
     const headers = { "content-type": "application/json", "last-modified": "Wed, 30 Jul 2026 04:44:02 GMT" };
+    if (gate) await gate;
 
     if (request.url === COORDINATES_URL) {
       return Response.json(

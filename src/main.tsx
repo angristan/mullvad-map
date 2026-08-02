@@ -8,13 +8,20 @@ import { App } from "./App";
 import "./global.css";
 
 const theme = createTheme({
-  primaryColor: "atlas",
+  primaryColor: "relay",
   primaryShade: 5,
-  defaultRadius: "md",
+  defaultRadius: "sm",
   fontFamily: '"Manrope Variable", ui-sans-serif, sans-serif',
   fontFamilyMonospace: '"Manrope Variable", ui-sans-serif, sans-serif',
+  fontSizes: {
+    xs: "13px",
+    sm: "14px",
+    md: "16px",
+    lg: "18px",
+    xl: "22px",
+  },
   colors: {
-    atlas: [
+    relay: [
       "#e9fff1",
       "#d1fadd",
       "#a9f3bf",
@@ -29,7 +36,7 @@ const theme = createTheme({
   },
   headings: {
     fontFamily: '"Manrope Variable", ui-sans-serif, sans-serif',
-    fontWeight: "750",
+    fontWeight: "800",
   },
 });
 

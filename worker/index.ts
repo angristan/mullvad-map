@@ -16,7 +16,6 @@ import {
 } from "./relay-service";
 
 const app = new Hono<{ Bindings: Env }>();
-let refreshInFlight: Promise<RelaySnapshot> | undefined;
 
 app.get("/api/health", (context) =>
   context.json({ status: "ok" }, 200, {
@@ -140,15 +139,6 @@ function runEffect<A, E>(
   return Effect.runPromise(effect.pipe(Effect.provide(makeRelayLayer(env))));
 }
 
-function refresh(env: Env) {
-  if (refreshInFlight) return refreshInFlight;
-
-  refreshInFlight = runEffect(env, refreshSnapshot()).finally(() => {
-    refreshInFlight = undefined;
-  });
-  return refreshInFlight;
-}
-
 async function resolveSnapshot(
   env: Env,
   executionContext: { waitUntil(promise: Promise<unknown>): void },
@@ -160,14 +150,14 @@ async function resolveSnapshot(
 
   if (state.status === "stale") {
     executionContext.waitUntil(
-      refresh(env).catch((error: unknown) => {
+      runEffect(env, refreshSnapshot()).catch((error: unknown) => {
         console.error("Background relay refresh failed", { error: getErrorTag(error) });
       }),
     );
     return { snapshot: state.record.snapshot, cache: "stale" };
   }
 
-  return { snapshot: await refresh(env), cache: "miss" };
+  return { snapshot: await runEffect(env, refreshSnapshot()), cache: "miss" };
 }
 
 function readEdgeLocation(cf: Request["cf"]) {

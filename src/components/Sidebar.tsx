@@ -8,6 +8,7 @@ import {
   Group,
   Loader,
   Paper,
+  Popover,
   ScrollArea,
   SimpleGrid,
   Skeleton,
@@ -22,10 +23,13 @@ import {
   IconAdjustmentsHorizontal,
   IconAlertCircle,
   IconBolt,
+  IconBrandGithub,
   IconChevronRight,
+  IconInfoCircle,
   IconSearch,
 } from "@tabler/icons-react";
 import { useMemo, useState } from "react";
+import { countryFlag } from "../lib/country-flag";
 import { hasActiveFilters } from "../lib/filter-relays";
 import {
   latencyColor,
@@ -128,14 +132,26 @@ export function Sidebar({
             <ThemeIcon className={classes.brandMark} size={36} radius="sm">
               M
             </ThemeIcon>
-            <div>
-              <Text className={classes.eyebrow}>Unofficial explorer</Text>
-              <Title order={1} className={classes.title}>
-                Relay Atlas
-              </Title>
-            </div>
+            <Title order={1} className={classes.title}>
+              Mullvad Relay Map
+            </Title>
           </Group>
-          {fetching && !loading && <Loader size="xs" aria-label="Refreshing relay data" />}
+          <Group gap={4} wrap="nowrap">
+            {fetching && !loading && <Loader size="xs" aria-label="Refreshing relay data" />}
+            <ActionIcon
+              component="a"
+              href="https://github.com/angristan/mullvad-map"
+              target="_blank"
+              rel="noreferrer"
+              size={32}
+              variant="subtle"
+              color="gray"
+              aria-label="View source code on GitHub"
+              title="View source code on GitHub"
+            >
+              <IconBrandGithub size={19} />
+            </ActionIcon>
+          </Group>
         </Group>
 
         <Box className={classes.hero}>
@@ -167,7 +183,7 @@ export function Sidebar({
           <TextInput
             className={classes.search}
             aria-label="Search relays"
-            placeholder="City, country, provider, hostname…"
+            placeholder={isMobile ? "Search relays…" : "City, country, provider, hostname…"}
             leftSection={<IconSearch size={16} />}
             rightSection={!isMobile ? <Text className={classes.hotkey}>/</Text> : undefined}
             value={filters.query}
@@ -175,17 +191,14 @@ export function Sidebar({
           />
           {isMobile && (
             <>
-              <ActionIcon
-                size={36}
-                variant="light"
-                color="cyan"
-                aria-label={latencyStatus === "probing" ? "Testing relay latency" : "Find lowest latency"}
-                title={latencyStatus === "probing" ? "Testing relay latency" : "Find lowest latency"}
-                onClick={testLatency}
-                disabled={loading || latencyStatus === "probing"}
-              >
-                {latencyStatus === "probing" ? <Loader size={15} /> : <IconBolt size={18} />}
-              </ActionIcon>
+              <LatencyProbeControl
+                isMobile
+                status={latencyStatus}
+                hasLatency={hasLatency}
+                loading={loading}
+                onStart={testLatency}
+              />
+              <LatencyInfo isMobile />
               <ActionIcon
                 size={36}
                 variant="light"
@@ -215,10 +228,10 @@ export function Sidebar({
             onClick={() => onSelect(bestLocation.key)}
           >
             <IconBolt size={16} />
-            <Text size="13px" fw={700} truncate>
+            <Text size="14px" fw={750} truncate>
               Best tested: {bestLocation.city}
             </Text>
-            <Badge size="sm" color="cyan" variant="light">
+            <Badge size="sm" color="relay" variant="light">
               ~{bestLatency.estimatedMs} ms
             </Badge>
             <IconChevronRight size={14} />
@@ -250,25 +263,23 @@ export function Sidebar({
 
         {!isMobile && (
           <Stack className={classes.locations} gap={0} mt="sm">
-            <Group justify="space-between" wrap="nowrap">
+            <Group className={classes.locationsHeader} justify="space-between" wrap="nowrap">
               <Text className={classes.sectionTitle}>Locations</Text>
-              <Group gap={6} wrap="nowrap">
-                <Text size="10px" c="dark.3">
+              <Group gap="sm" wrap="nowrap">
+                <Text size="12px" c="gray.5" fw={650}>
                   {latencyStatus === "probing"
                     ? `${latencyCompleted}/${latencyTotal || "…"}`
                     : `${locations.length}`}
                 </Text>
-                <Button
-                  size="compact-xs"
-                  variant="subtle"
-                  color="cyan"
-                  px={5}
-                  leftSection={latencyStatus === "probing" ? <Loader size={11} /> : <IconBolt size={13} />}
-                  onClick={testLatency}
-                  disabled={loading || latencyStatus === "probing"}
-                >
-                  {hasLatency ? "Retest" : "Test"}
-                </Button>
+                <Group gap={4} wrap="nowrap">
+                  <LatencyProbeControl
+                    status={latencyStatus}
+                    hasLatency={hasLatency}
+                    loading={loading}
+                    onStart={testLatency}
+                  />
+                  <LatencyInfo />
+                </Group>
               </Group>
             </Group>
             <LocationTableHeader
@@ -309,15 +320,115 @@ export function Sidebar({
         )}
 
         <Group className={classes.footer} justify="space-between" mt="auto">
-          <Text component="a" href="https://mullvad.net/en/servers" target="_blank" size="11px">
+          <Text
+            component="a"
+            href="https://mullvad.net/en/servers"
+            target="_blank"
+            rel="noreferrer"
+            size="13px"
+            fw={600}
+          >
             Data by Mullvad
           </Text>
-          <Text component="a" href="https://openfreemap.org" target="_blank" size="11px">
+          <Text
+            component="a"
+            href="https://openfreemap.org"
+            target="_blank"
+            rel="noreferrer"
+            size="13px"
+            fw={600}
+          >
             Map by OpenFreeMap
           </Text>
         </Group>
       </Stack>
     </Paper>
+  );
+}
+
+function LatencyProbeControl({
+  isMobile = false,
+  status,
+  hasLatency,
+  loading,
+  onStart,
+}: {
+  isMobile?: boolean;
+  status: SidebarProps["latencyStatus"];
+  hasLatency: boolean;
+  loading: boolean;
+  onStart: () => void;
+}) {
+  const probing = status === "probing";
+  const label = hasLatency ? "Retest latency" : "Test latency";
+
+  return isMobile ? (
+    <ActionIcon
+      size={36}
+      variant="light"
+      color="relay"
+      aria-label={probing ? "Testing relay latency" : label}
+      title={probing ? "Testing relay latency" : label}
+      disabled={loading || probing}
+      onClick={onStart}
+    >
+      {probing ? <Loader size={15} /> : <IconBolt size={18} />}
+    </ActionIcon>
+  ) : (
+    <Button
+      className={classes.latencyTestButton}
+      size="compact-sm"
+      variant="default"
+      px={9}
+      leftSection={
+        probing ? <Loader size={11} /> : <IconBolt size={13} color="#57e389" />
+      }
+      disabled={loading || probing}
+      onClick={onStart}
+    >
+      {probing ? "Testing" : label}
+    </Button>
+  );
+}
+
+function LatencyInfo({ isMobile = false }: { isMobile?: boolean }) {
+  return (
+    <Popover
+      width={300}
+      position={isMobile ? "bottom-end" : "right-start"}
+      radius="sm"
+      shadow="none"
+      transitionProps={{ duration: 100 }}
+      withArrow={false}
+    >
+      <Popover.Target>
+        <ActionIcon
+          size={isMobile ? 36 : 24}
+          variant={isMobile ? "light" : "subtle"}
+          color="gray"
+          aria-label="How estimated latency is computed"
+          title="How estimated latency is computed"
+        >
+          <IconInfoCircle size={isMobile ? 18 : 14} />
+        </ActionIcon>
+      </Popover.Target>
+      <Popover.Dropdown className={classes.latencyInfo}>
+        <Text size="14px" fw={750}>
+          Experimental latency estimate
+        </Text>
+        <Text size="xs" mt={5}>
+          The browser makes three direct TLS connection attempts to one relay per matching
+          location, six locations at a time. Relays can observe your network egress IP and timing.
+        </Text>
+        <Text component="code" className={classes.latencyFormula}>
+          estimated RTT = median duration ÷ 4
+        </Text>
+        <Text size="xs" c="dark.2" mt={6}>
+          This ranks locations; it is not ICMP ping or VPN tunnel performance. TLS currently fails
+          before HTTP, but browser and Mullvad port behavior can change.
+        </Text>
+      </Popover.Dropdown>
+    </Popover>
   );
 }
 
@@ -443,13 +554,6 @@ function LocationRow({
   );
 }
 
-function countryFlag(code: string) {
-  return code
-    .toUpperCase()
-    .split("")
-    .map((character) => String.fromCodePoint(127397 + character.charCodeAt(0)))
-    .join("");
-}
 
 function formatCapacity(capacityGbps: number) {
   if (capacityGbps < 1_000) return `${capacityGbps}G`;

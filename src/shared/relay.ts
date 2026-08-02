@@ -44,13 +44,6 @@ export type LatencyCandidatesResponse = {
   basis: "edge" | "global";
 };
 
-export type ApiErrorResponse = {
-  error: {
-    code: "rate_limited" | "upstream_unavailable" | "internal_error";
-    message: string;
-  };
-};
-
 export type FilterState = {
   query: string;
   status: "all" | "online" | "offline";

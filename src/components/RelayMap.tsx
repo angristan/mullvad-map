@@ -51,6 +51,7 @@ export default function RelayMap({
   const latencyScaleRef = useRef(latencyScale);
   const latencyStatusRef = useRef(latencyStatus);
   const bestLatencyKeyRef = useRef(bestLatencyKey);
+  const selectedKeyRef = useRef(selectedKey);
   const [mapReady, setMapReady] = useState(false);
   const [mapFailed, setMapFailed] = useState(false);
 
@@ -58,6 +59,7 @@ export default function RelayMap({
   latencyScaleRef.current = latencyScale;
   latencyStatusRef.current = latencyStatus;
   bestLatencyKeyRef.current = bestLatencyKey;
+  selectedKeyRef.current = selectedKey;
 
   useEffect(() => {
     const container = containerRef.current;
@@ -84,22 +86,25 @@ export default function RelayMap({
       if (!projectionConfigured) {
         projectionConfigured = true;
         map.setProjection({ type: "globe" });
-        map.addLayer(
-          {
-            id: "atlas-natural-earth",
-            type: "raster",
-            source: "ne2_shaded",
-            maxzoom: 7,
-            paint: {
-              "raster-opacity": ["interpolate", ["linear"], ["zoom"], 0, 0.82, 6, 0.12],
-              "raster-saturation": -0.72,
-              "raster-contrast": 0.18,
-              "raster-brightness-min": 0.06,
-              "raster-brightness-max": 0.58,
+        if (map.getSource("ne2_shaded") && !map.getLayer("relay-natural-earth")) {
+          const beforeLayer = map.getLayer("water") ? "water" : undefined;
+          map.addLayer(
+            {
+              id: "relay-natural-earth",
+              type: "raster",
+              source: "ne2_shaded",
+              maxzoom: 7,
+              paint: {
+                "raster-opacity": ["interpolate", ["linear"], ["zoom"], 0, 0.82, 6, 0.12],
+                "raster-saturation": -0.72,
+                "raster-contrast": 0.18,
+                "raster-brightness-min": 0.06,
+                "raster-brightness-max": 0.58,
+              },
             },
-          },
-          "water",
-        );
+            beforeLayer,
+          );
+        }
         map.setSky({
           "sky-color": "#02070d",
           "horizon-color": "#173047",
@@ -123,7 +128,8 @@ export default function RelayMap({
 
     return () => {
       window.clearTimeout(timeout);
-      setMapReady(false);
+      map.off("styledata", onStyleData);
+      map.off("error", onError);
       mapRef.current = null;
       map.remove();
     };
@@ -133,7 +139,7 @@ export default function RelayMap({
     const map = mapRef.current;
     if (!map || !mapReady) return;
 
-    let markers: Marker[] = [];
+    const markers: Marker[] = [];
     const popup = new Popup({
       closeButton: false,
       closeOnClick: false,
@@ -142,18 +148,10 @@ export default function RelayMap({
       className: "relay-popup",
     });
 
-    const renderMarkers = () => {
-      popup.remove();
-      markers.forEach((marker) => marker.remove());
-      markers = [];
+    const addMarkers = () => {
       markerElementsRef.current.clear();
 
-      const center = map.getCenter();
-      const visibleLocations = locations.filter((location) =>
-        isOnVisibleHemisphere(location, center),
-      );
-
-      for (const location of visibleLocations) {
+      for (const location of locations) {
         const serverCount = location.servers.length;
         const offlineCount = location.servers.filter((server) => !server.active).length;
         const capacityGbps = activeListedCapacityGbps(location.servers);
@@ -162,7 +160,7 @@ export default function RelayMap({
         element.type = "button";
         element.className = "relay-node";
         element.dataset.issues = String(offlineCount > 0);
-        element.dataset.selected = String(location.key === selectedKey);
+        element.dataset.selected = String(location.key === selectedKeyRef.current);
         element.dataset.baseLabel = baseLabel;
         element.style.setProperty(
           "--node-size",
@@ -202,23 +200,50 @@ export default function RelayMap({
         element.addEventListener("blur", () => popup.remove());
         markerElementsRef.current.set(location.key, element);
         markers.push(
-          new Marker({ element, opacityWhenCovered: 0 })
+          new Marker({
+            element,
+            opacityWhenCovered: 0,
+            subpixelPositioning: true,
+          })
             .setLngLat([location.longitude, location.latitude])
             .addTo(map),
         );
       }
     };
 
-    renderMarkers();
-    map.on("moveend", renderMarkers);
+    const syncMarkerAccessibility = () => {
+      const center = map.getCenter();
+      for (const location of locations) {
+        const element = markerElementsRef.current.get(location.key);
+        if (!element) continue;
+        const visible = isOnVisibleHemisphere(location, center);
+        element.tabIndex = visible ? 0 : -1;
+        if (visible) {
+          element.removeAttribute("aria-hidden");
+        } else {
+          element.setAttribute("aria-hidden", "true");
+          if (document.activeElement === element) element.blur();
+        }
+      }
+    };
+
+    addMarkers();
+    syncMarkerAccessibility();
+    map.on("moveend", syncMarkerAccessibility);
 
     return () => {
-      map.off("moveend", renderMarkers);
+      map.off("moveend", syncMarkerAccessibility);
       popup.remove();
       markers.forEach((marker) => marker.remove());
       markerElementsRef.current.clear();
     };
-  }, [locations, mapReady, onSelect, selectedKey]);
+  }, [locations, mapReady, onSelect]);
+
+  useEffect(() => {
+    for (const [key, element] of markerElementsRef.current) {
+      element.dataset.selected = String(key === selectedKey);
+    }
+  }, [selectedKey]);
 
   useEffect(() => {
     const visualState = {
@@ -257,7 +282,7 @@ export default function RelayMap({
         aria-label="Interactive globe of Mullvad relay locations"
       />
 
-      <Paper className={classes.legend} radius="md" px="sm" py={7} withBorder>
+      <Paper className={classes.legend} radius="sm" px="sm" py={7} withBorder>
         <Stack gap={5}>
           {latencyMode ? (
             <LatencyGradientLegend
@@ -275,7 +300,7 @@ export default function RelayMap({
       </Paper>
 
       {mapFailed && (
-        <Paper className={classes.error} radius="md" p="sm" withBorder role="alert">
+        <Paper className={classes.error} radius="sm" p="sm" withBorder role="alert">
           <Text size="xs" c="yellow.2">
             The base map could not load. Search and relay details are still available.
           </Text>
@@ -290,7 +315,7 @@ function CapacityLegend() {
     <Group className={classes.capacityLegend} gap={6} wrap="nowrap">
       <span className={classes.capacityDot} data-size="small" />
       <span className={classes.capacityDot} data-size="large" />
-      <Text size="10px" c="gray.4">
+      <Text size="12px" c="gray.3" fw={650}>
         Active listed capacity
       </Text>
     </Group>
@@ -301,7 +326,7 @@ function LegendItem({ color, label }: { color: string; label: string }) {
   return (
     <Group gap={5} wrap="nowrap">
       <span className={classes.legendDot} style={{ backgroundColor: color }} />
-      <Text size="13px" c="gray.4">
+      <Text size="13px" c="gray.3" fw={650}>
         {label}
       </Text>
     </Group>
@@ -319,7 +344,7 @@ function LatencyGradientLegend({
     return (
       <Group gap={7} wrap="nowrap">
         <span className={classes.legendDot} style={{ backgroundColor: "#64748b" }} />
-        <Text size="13px" c="gray.4">
+        <Text size="13px" c="gray.3" fw={650}>
           Testing all locations…
         </Text>
       </Group>
@@ -329,7 +354,7 @@ function LatencyGradientLegend({
   return (
     <Group gap="sm" wrap="nowrap">
       <div className={classes.gradientLegend}>
-        <Text size="10px" c="gray.4">
+        <Text size="12px" c="gray.3" fw={650}>
           Faster
         </Text>
         <span
@@ -338,7 +363,7 @@ function LatencyGradientLegend({
             background: `linear-gradient(90deg, ${LATENCY_FAST_COLOR}, ${LATENCY_MID_COLOR}, ${LATENCY_SLOW_COLOR})`,
           }}
         />
-        <Text size="10px" c="gray.4">
+        <Text size="12px" c="gray.3" fw={650}>
           Slower
         </Text>
       </div>
@@ -433,11 +458,7 @@ function makePopupContent({
   meta.textContent = `${serverCount} relay${serverCount === 1 ? "" : "s"} · ${
     offlineCount > 0 ? `${offlineCount} offline` : "all online"
   } · ${capacityGbps.toLocaleString()} Gbps listed`;
-  const hint = document.createElement("p");
-  hint.className = "relay-popup-hint";
-  hint.textContent = "Select for relay details";
   root.appendChild(header);
   root.appendChild(meta);
-  root.appendChild(hint);
   return root;
 }

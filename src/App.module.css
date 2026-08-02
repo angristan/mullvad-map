@@ -16,8 +16,13 @@
 }
 
 .filterDrawer {
-  background: #0b2b3b;
+  background: #071923;
   border: 1px solid rgb(255 255 255 / 9%);
+}
+
+.filterDrawerTitle {
+  font-size: 18px;
+  font-weight: 750;
 }
 
 .filterDrawerBody {

@@ -1,18 +1,18 @@
 .content {
-  background: #0b2b3b;
-  border: 1px solid rgb(255 255 255 / 9%);
-  box-shadow: 0 24px 80px rgb(8 39 54 / 30%);
+  background: #071923;
+  border: 1px solid rgb(255 255 255 / 10%);
+  box-shadow: none;
 }
 
 .header {
-  min-height: 94px;
-  padding: 22px 22px 14px;
-  background: #0b2b3b;
+  min-height: 90px;
+  padding: 18px 20px 14px;
+  background: #071923;
 }
 
 .body {
-  height: calc(100% - 94px);
-  padding: 8px 20px 20px;
+  height: calc(100% - 90px);
+  padding: 8px 18px 18px;
   overflow: hidden;
 }
 
@@ -23,45 +23,46 @@
 .country,
 .summaryLabel,
 .dataLabel {
-  color: var(--mantine-color-dark-2);
-  font-size: 10px;
+  color: var(--mantine-color-gray-5);
+  font-size: 12px;
   font-weight: 750;
-  letter-spacing: 0.07em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
 .city {
-  font-size: 30px;
-  line-height: 1.08;
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1.12;
   letter-spacing: -0.04em;
 }
 
 .summaryValue {
   font-family: var(--mantine-font-family-monospace);
-  font-size: 20px;
-  font-weight: 650;
+  font-size: 22px;
+  font-weight: 750;
 }
 
 .summaryLabel {
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .latencyCard {
-  color: var(--mantine-color-cyan-2);
-  background: rgb(34 211 238 / 7%);
-  border: 1px solid rgb(34 211 238 / 18%);
+  color: var(--mantine-color-relay-3);
+  background: rgb(87 227 137 / 5%);
+  border: 1px solid rgb(87 227 137 / 18%);
 }
 
 .latencyLabel {
   color: var(--mantine-color-gray-0);
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 750;
 }
 
 .latencyValue {
   flex: 0 0 auto;
-  color: var(--mantine-color-cyan-2);
-  font-size: 18px;
+  color: var(--mantine-color-relay-3);
+  font-size: 20px;
   font-weight: 800;
   letter-spacing: -0.03em;
 }
@@ -72,12 +73,12 @@
 }
 
 .serverItem {
-  background: rgb(255 255 255 / 3%);
-  border-color: rgb(255 255 255 / 7%);
+  background: transparent;
+  border-color: rgb(255 255 255 / 8%);
 }
 
 .serverControl {
-  padding: 4px 10px;
+  padding: 7px 10px;
 }
 
 .serverName {
@@ -95,23 +96,24 @@
   display: block;
   border-radius: 50%;
   background: #ffb347;
-  box-shadow: 0 0 0 3px rgb(255 179 71 / 10%);
+  box-shadow: none;
 }
 
 .status[data-online="true"] {
   background: #57e389;
-  box-shadow: 0 0 0 3px rgb(87 227 137 / 10%);
+  box-shadow: none;
 }
 
 .dataLabel {
-  width: 42px;
+  width: 50px;
   flex: 0 0 auto;
 }
 
 .dataValue {
   min-width: 0;
-  color: var(--mantine-color-dark-1);
-  font-size: 13px;
+  color: var(--mantine-color-gray-3);
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .notice {
@@ -124,12 +126,12 @@
 
 @media (max-width: 48em) {
   .header {
-    min-height: 82px;
-    padding: 16px 18px 10px;
+    min-height: 80px;
+    padding: 14px 16px 12px;
   }
 
   .body {
-    height: calc(100% - 82px);
+    height: calc(100% - 80px);
     padding: 7px 14px 14px;
   }
 
@@ -138,6 +140,6 @@
   }
 
   .city {
-    font-size: 23px;
+    font-size: 25px;
   }
 }

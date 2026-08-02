@@ -66,6 +66,17 @@ export function App() {
   const resetFilters = useCallback(() => setFilters(DEFAULT_FILTERS), []);
 
   useEffect(() => {
+    if (selectedKey !== null && selectedLocation === null) {
+      setSelectedKey(null);
+      closeDetails();
+    }
+  }, [closeDetails, selectedKey, selectedLocation]);
+
+  useEffect(() => {
+    if (!isMobile && filtersOpened) closeMobileFilters();
+  }, [closeMobileFilters, filtersOpened, isMobile]);
+
+  useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "/" && document.activeElement?.tagName !== "INPUT") {
         event.preventDefault();
@@ -130,9 +141,13 @@ export function App() {
         position="bottom"
         size={420}
         offset={8}
-        radius="xl"
+        radius="sm"
         title="Filter relays"
-        classNames={{ content: classes.filterDrawer, body: classes.filterDrawerBody }}
+        classNames={{
+          content: classes.filterDrawer,
+          title: classes.filterDrawerTitle,
+          body: classes.filterDrawerBody,
+        }}
       >
         <FilterControls
           filters={filters}
@@ -150,7 +165,7 @@ function MapFallback() {
     <Box className={classes.mapFallback}>
       <Stack align="center" gap="xs">
         <Loader size="sm" />
-        <Text size="sm" c="dark.3">
+        <Text size="sm" c="gray.5" fw={650}>
           Loading map…
         </Text>
       </Stack>

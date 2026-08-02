@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "mullvad-relay-atlas",
+  "name": "mullvad-map",
   "main": "./worker/index.ts",
   "compatibility_date": "2026-08-01",
   "compatibility_flags": ["nodejs_compat"],
@@ -13,13 +13,13 @@
   "kv_namespaces": [
     {
       "binding": "RELAY_CACHE",
-      "id": "00000000000000000000000000000000"
+      "id": "a9a98c7119c74b25be04e49cd25f9d17"
     }
   ],
   "ratelimits": [
     {
       "name": "API_RATE_LIMITER",
-      "namespace_id": "1001",
+      "namespace_id": "731928451",
       "simple": {
         "limit": 120,
         "period": 60

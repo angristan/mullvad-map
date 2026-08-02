@@ -18,7 +18,6 @@ type LatencyProbeState = {
   completed: number;
   total: number;
   error: string | null;
-  basis: "edge" | "global" | null;
 };
 
 const INITIAL_STATE: LatencyProbeState = {
@@ -27,12 +26,12 @@ const INITIAL_STATE: LatencyProbeState = {
   completed: 0,
   total: 0,
   error: null,
-  basis: null,
 };
 
 export function useLatencyProbe(locations: ReadonlyArray<FilteredLocation>) {
   const [state, setState] = useState<LatencyProbeState>(INITIAL_STATE);
   const activeController = useRef<AbortController | null>(null);
+  const locationScope = locations.map((location) => location.key).join("\u0000");
 
   const start = useCallback(async () => {
     activeController.current?.abort();
@@ -50,7 +49,6 @@ export function useLatencyProbe(locations: ReadonlyArray<FilteredLocation>) {
       setState((current) => ({
         ...current,
         total: targets.length,
-        basis: candidates.basis,
       }));
 
       let nextTarget = 0;
@@ -90,8 +88,16 @@ export function useLatencyProbe(locations: ReadonlyArray<FilteredLocation>) {
         status: "error",
         error: error instanceof Error ? error.message : "Latency testing failed.",
       }));
+    } finally {
+      if (activeController.current === controller) activeController.current = null;
     }
   }, [locations]);
+
+  useEffect(() => {
+    activeController.current?.abort();
+    activeController.current = null;
+    setState(INITIAL_STATE);
+  }, [locationScope]);
 
   useEffect(
     () => () => {
@@ -135,7 +141,7 @@ async function measureFailedTls(ipv4: string, signal: AbortSignal) {
   const startedAt = performance.now();
 
   try {
-    await fetch(`https://${ipv4}/?atlas-probe=${crypto.randomUUID()}`, {
+    await fetch(`https://${ipv4}/?relay-map-probe=${crypto.randomUUID()}`, {
       signal: controller.signal,
       mode: "no-cors",
       cache: "no-store",
