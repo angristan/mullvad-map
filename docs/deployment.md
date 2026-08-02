@@ -1,5 +1,7 @@
 # Deployment
 
+This repository's `main` branch is connected to Cloudflare Workers Builds. Successful pushes deploy to `mullvad-map.angristan.workers.dev`. A separate `Deploy main` hook is stored only in the Cloudflare dashboard for explicit webhook-triggered rebuilds.
+
 ## Prerequisites
 
 - A Cloudflare account with Workers enabled
