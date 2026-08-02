@@ -26,26 +26,6 @@ Mullvad relays can observe the connection's network egress IP and timing. TLS cu
 
 Filtering before starting a test reduces the number of direct connections. A full run attempts `3 × matching locations` connections.
 
-## Local development
-
-Requirements: [Bun](https://bun.sh/) 1.3.9.
-
-```bash
-bun install --frozen-lockfile
-bun run typegen
-bun run dev
-```
-
-Open the IPv4 URL printed by Vite. The Cloudflare Vite plugin runs the API in `workerd`; local KV data is persisted by Wrangler.
-
-## Validation
-
-```bash
-bun run check
-```
-
-This checks generated Worker types, runs unit and Workerd integration tests, builds the client and Worker, and performs a Wrangler dry run.
-
 ## Architecture
 
 ```text
@@ -67,7 +47,27 @@ Static files bypass Worker execution. Only `/api/*` invokes Hono. See [Architect
 
 The project deploys as one Cloudflare Worker with Static Assets. See [Deployment](docs/deployment.md) for manual setup, Workers Builds automatic deployment, smoke tests, and rollback.
 
-## Data and privacy
+## Local development
+
+Requirements: [Bun](https://bun.sh/) 1.3.9.
+
+```bash
+bun install --frozen-lockfile
+bun run typegen
+bun run dev
+```
+
+Open the IPv4 URL printed by Vite. The Cloudflare Vite plugin runs the API in `workerd`; local KV data is persisted by Wrangler.
+
+### Validation
+
+```bash
+bun run check
+```
+
+This checks generated Worker types, runs unit and Workerd integration tests, builds the client and Worker, and performs a Wrangler dry run.
+
+## Data sources
 
 The Worker joins two Mullvad-hosted endpoints used by Mullvad's app and website:
 
@@ -77,12 +77,5 @@ The Worker joins two Mullvad-hosted endpoints used by Mullvad's app and website:
 | [`/www/relays/all/`](https://api.mullvad.net/www/relays/all/) | Relay status, ownership, provider, speed, capabilities, addresses, and notices |
 
 These endpoints can change, so responses are decoded at runtime and stale KV data is retained for recovery.
-
-- Cloudflare processes normal site and API requests.
-- OpenFreeMap receives browser requests for map styles, sprites, and tiles.
-- The Worker uses the connecting IP only as a native rate-limit key and does not persist it.
-- Cloudflare edge coordinates are used only to order latency candidates and are not persisted.
-- User-initiated latency tests connect directly to Mullvad relays as described above.
-- Workers Logs and traces follow the sampling configured in `wrangler.jsonc`.
 
 This project is not affiliated with or endorsed by Mullvad VPN AB.
