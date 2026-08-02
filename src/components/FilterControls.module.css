@@ -1,0 +1,35 @@
+.row {
+  display: grid;
+  grid-template-columns: 50px minmax(0, 1fr);
+  align-items: center;
+  gap: var(--mantine-spacing-xs);
+}
+
+.label {
+  color: var(--mantine-color-dark-2);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.switch {
+  min-width: 100px;
+  padding-bottom: 4px;
+}
+
+.reset {
+  align-self: flex-start;
+  padding-inline: 0;
+}
+
+@media (max-width: 48em) {
+  .row {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .switch {
+    min-width: 104px;
+  }
+}

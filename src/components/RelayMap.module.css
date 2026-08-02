@@ -1,0 +1,93 @@
+.root,
+.map {
+  position: absolute;
+  inset: 0;
+}
+
+.root {
+  background: #020a10;
+}
+
+.map {
+  background: #020a10;
+}
+
+.legend {
+  position: absolute;
+  z-index: 2;
+  right: 12px;
+  bottom: 39px;
+  color: #dcebe5;
+  background: rgb(4 20 29 / 92%);
+  border-color: rgb(87 227 137 / 18%);
+  box-shadow: 0 8px 28px rgb(0 0 0 / 32%), 0 0 20px rgb(87 227 137 / 6%);
+}
+
+.legendDot {
+  width: 9px;
+  height: 9px;
+  border: 2px solid #d9ffe6;
+  border-radius: 50%;
+}
+
+.gradientLegend {
+  display: grid;
+  grid-template-columns: auto 112px auto;
+  align-items: center;
+  gap: 7px;
+}
+
+.gradientBar {
+  height: 7px;
+  border: 1px solid rgb(255 255 255 / 22%);
+  border-radius: 999px;
+  box-shadow: 0 0 12px rgb(87 227 137 / 16%);
+}
+
+.capacityLegend {
+  min-height: 18px;
+  padding-top: 4px;
+  border-top: 1px solid rgb(255 255 255 / 8%);
+}
+
+.capacityDot {
+  display: block;
+  flex: 0 0 auto;
+  border: 1px solid #d7ffe5;
+  border-radius: 50%;
+  background: #57e389;
+  box-shadow: 0 0 7px rgb(87 227 137 / 52%);
+}
+
+.capacityDot[data-size="small"] {
+  width: 7px;
+  height: 7px;
+}
+
+.capacityDot[data-size="large"] {
+  width: 14px;
+  height: 14px;
+}
+
+@media (max-width: 30em) {
+  .gradientLegend {
+    grid-template-columns: auto 74px auto;
+  }
+}
+
+.error {
+  position: absolute;
+  z-index: 3;
+  right: 12px;
+  bottom: 86px;
+  width: min(310px, calc(100vw - 24px));
+  background: #593d17;
+  border-color: rgb(255 179 71 / 30%);
+  box-shadow: 0 8px 26px rgb(8 39 54 / 18%);
+}
+
+@media (max-width: 48em) {
+  .legend {
+    bottom: max(58px, calc(env(safe-area-inset-bottom) + 52px));
+  }
+}

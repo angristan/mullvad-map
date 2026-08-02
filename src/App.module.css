@@ -1,0 +1,25 @@
+.root {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #020a10;
+}
+
+.mapFallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #91a9b4;
+  background: #020a10;
+}
+
+.filterDrawer {
+  background: #0b2b3b;
+  border: 1px solid rgb(255 255 255 / 9%);
+}
+
+.filterDrawerBody {
+  padding-bottom: max(var(--mantine-spacing-lg), env(safe-area-inset-bottom));
+}

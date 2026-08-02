@@ -1,0 +1,143 @@
+.content {
+  background: #0b2b3b;
+  border: 1px solid rgb(255 255 255 / 9%);
+  box-shadow: 0 24px 80px rgb(8 39 54 / 30%);
+}
+
+.header {
+  min-height: 94px;
+  padding: 22px 22px 14px;
+  background: #0b2b3b;
+}
+
+.body {
+  height: calc(100% - 94px);
+  padding: 8px 20px 20px;
+  overflow: hidden;
+}
+
+.flag {
+  font-size: 30px;
+}
+
+.country,
+.summaryLabel,
+.dataLabel {
+  color: var(--mantine-color-dark-2);
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.city {
+  font-size: 30px;
+  line-height: 1.08;
+  letter-spacing: -0.04em;
+}
+
+.summaryValue {
+  font-family: var(--mantine-font-family-monospace);
+  font-size: 20px;
+  font-weight: 650;
+}
+
+.summaryLabel {
+  font-size: 10px;
+}
+
+.latencyCard {
+  color: var(--mantine-color-cyan-2);
+  background: rgb(34 211 238 / 7%);
+  border: 1px solid rgb(34 211 238 / 18%);
+}
+
+.latencyLabel {
+  color: var(--mantine-color-gray-0);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.latencyValue {
+  flex: 0 0 auto;
+  color: var(--mantine-color-cyan-2);
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.scroll {
+  min-height: 0;
+  flex: 1;
+}
+
+.serverItem {
+  background: rgb(255 255 255 / 3%);
+  border-color: rgb(255 255 255 / 7%);
+}
+
+.serverControl {
+  padding: 4px 10px;
+}
+
+.serverName {
+  min-width: 0;
+  flex: 1;
+}
+
+.speed {
+  flex: 0 0 auto;
+}
+
+.status {
+  width: 8px;
+  height: 8px;
+  display: block;
+  border-radius: 50%;
+  background: #ffb347;
+  box-shadow: 0 0 0 3px rgb(255 179 71 / 10%);
+}
+
+.status[data-online="true"] {
+  background: #57e389;
+  box-shadow: 0 0 0 3px rgb(87 227 137 / 10%);
+}
+
+.dataLabel {
+  width: 42px;
+  flex: 0 0 auto;
+}
+
+.dataValue {
+  min-width: 0;
+  color: var(--mantine-color-dark-1);
+  font-size: 13px;
+}
+
+.notice {
+  padding: 8px;
+  border: 1px solid rgb(255 179 71 / 20%);
+  border-radius: var(--mantine-radius-sm);
+  color: var(--mantine-color-yellow-2);
+  background: rgb(255 179 71 / 8%);
+}
+
+@media (max-width: 48em) {
+  .header {
+    min-height: 82px;
+    padding: 16px 18px 10px;
+  }
+
+  .body {
+    height: calc(100% - 82px);
+    padding: 7px 14px 14px;
+  }
+
+  .flag {
+    font-size: 25px;
+  }
+
+  .city {
+    font-size: 23px;
+  }
+}
