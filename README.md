@@ -4,6 +4,8 @@ An unofficial interactive map of Mullvad VPN infrastructure. Explore relay locat
 
 **Live:** [mullvad.stanislas.cloud](https://mullvad.stanislas.cloud)
 
+![Mullvad Relay Map with latency test results](docs/mullvad-relay-map-latency.webp)
+
 ## Features
 
 - Responsive MapLibre globe with one node per matching relay location
