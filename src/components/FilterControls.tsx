@@ -17,7 +17,7 @@ export function FilterControls({
   showReset,
 }: FilterControlsProps) {
   return (
-    <Stack gap={7} aria-label="Relay filters">
+    <Stack gap={10} role="group" aria-label="Relay filters">
       <FilterRow label="Status">
         <SegmentedControl
           fullWidth

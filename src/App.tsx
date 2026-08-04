@@ -24,7 +24,7 @@ const DEFAULT_FILTERS: FilterState = {
 
 export function App() {
   const query = useQuery(relayQueryOptions());
-  const isMobile = useMediaQuery("(max-width: 48em)", false, {
+  const isMobile = useMediaQuery("(max-width: 56.25em)", false, {
     getInitialValueInEffect: false,
   });
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
@@ -92,20 +92,13 @@ export function App() {
 
   return (
     <Box className={classes.root}>
-      <Suspense fallback={<MapFallback />}>
-        <RelayMap
-          locations={filteredLocations}
-          selectedKey={selectedKey}
-          bestLatencyKey={bestLatency?.locationKey ?? null}
-          latencyResults={latency.results}
-          latencyScale={latencyScale}
-          latencyStatus={latency.status}
-          onSelect={selectLocation}
-        />
-      </Suspense>
+      <a className={classes.skipLink} href="#relay-map">
+        Skip to map
+      </a>
 
       <Sidebar
         locations={filteredLocations}
+        selectedKey={selectedKey}
         summary={summary}
         filters={filters}
         onFiltersChange={setFilters}
@@ -127,6 +120,19 @@ export function App() {
         onTestLatency={() => void latency.start()}
       />
 
+      <Suspense fallback={<MapFallback />}>
+        <RelayMap
+          locations={filteredLocations}
+          selectedKey={selectedKey}
+          detailsOpen={detailsOpened && selectedLocation !== null}
+          bestLatencyKey={bestLatency?.locationKey ?? null}
+          latencyResults={latency.results}
+          latencyScale={latencyScale}
+          latencyStatus={latency.status}
+          onSelect={selectLocation}
+        />
+      </Suspense>
+
       <LocationDetails
         location={selectedLocation}
         opened={detailsOpened && selectedLocation !== null}
@@ -139,12 +145,14 @@ export function App() {
         opened={filtersOpened && isMobile}
         onClose={closeMobileFilters}
         position="bottom"
-        size={420}
+        size={330}
         offset={8}
-        radius="sm"
+        radius="lg"
         title="Filter relays"
+        overlayProps={{ backgroundOpacity: 0.32, blur: 2 }}
         classNames={{
           content: classes.filterDrawer,
+          header: classes.filterDrawerHeader,
           title: classes.filterDrawerTitle,
           body: classes.filterDrawerBody,
         }}
@@ -165,7 +173,7 @@ function MapFallback() {
     <Box className={classes.mapFallback}>
       <Stack align="center" gap="xs">
         <Loader size="sm" />
-        <Text size="sm" c="gray.5" fw={650}>
+        <Text size="sm" c="var(--ds-muted)" fw={650}>
           Loading map…
         </Text>
       </Stack>

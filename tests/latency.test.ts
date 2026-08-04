@@ -49,9 +49,9 @@ describe("latency estimation", () => {
     const logarithmicMidpoint = Math.expm1(
       (Math.log1p(scale.low) + Math.log1p(scale.high)) / 2,
     );
-    expect(latencyColor(15, scale)).toBe("rgb(87 227 137)");
-    expect(latencyColor(logarithmicMidpoint, scale)).toBe("rgb(250 204 21)");
-    expect(latencyColor(55, scale)).toBe("rgb(251 113 133)");
+    expect(latencyColor(15, scale)).toBe("rgb(105 193 181)");
+    expect(latencyColor(logarithmicMidpoint, scale)).toBe("rgb(217 138 98)");
+    expect(latencyColor(55, scale)).toBe("rgb(240 135 112)");
     expect(latencyColor(25, scale)).not.toBe(latencyColor(30, scale));
   });
 

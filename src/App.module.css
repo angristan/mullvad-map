@@ -1,39 +1,77 @@
 .root {
   --desktop-sidebar-offset: 12px;
-  --desktop-sidebar-width: 412px;
+  --desktop-sidebar-width: 460px;
 
   position: relative;
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background: #020a10;
+  color: var(--ds-ink);
+  background: var(--ds-canvas);
 }
+
+.skipLink {
+  position: fixed;
+  z-index: 20;
+  top: 8px;
+  left: 50%;
+  padding: 9px 12px;
+  border: 1px solid var(--ds-line-strong);
+  border-radius: var(--ds-radius-md);
+  color: var(--ds-ink);
+  background: var(--ds-paper);
+  box-shadow: var(--ds-shadow-control);
+  font-weight: 700;
+  text-decoration: none;
+  transform: translate(-50%, -160%);
+  transition: transform var(--ds-motion-fast) var(--ds-motion-easing);
+}
+
+.skipLink:focus { outline: 2px solid var(--ds-focus); outline-offset: 2px; transform: translate(-50%, 0); }
 
 .mapFallback {
   position: absolute;
   inset: 0;
   display: grid;
   place-items: center;
-  color: #91a9b4;
-  background: #020a10;
+  color: var(--ds-muted);
+  background:
+    radial-gradient(circle at 68% 42%, color-mix(in srgb, var(--ds-sky) 14%, transparent), transparent 26%),
+    var(--ds-canvas);
 }
 
 .filterDrawer {
-  background: #071923;
-  border: 1px solid rgb(255 255 255 / 9%);
+  border: 1px solid var(--ds-glass-line);
+  color: var(--ds-ink);
+  background: var(--ds-glass-sheen), var(--ds-glass-overlay);
+  box-shadow: var(--ds-shadow-float);
+  -webkit-backdrop-filter: blur(var(--ds-glass-blur)) saturate(var(--ds-glass-saturate)) brightness(var(--ds-glass-brightness)) contrast(var(--ds-glass-contrast));
+  backdrop-filter: blur(var(--ds-glass-blur)) saturate(var(--ds-glass-saturate)) brightness(var(--ds-glass-brightness)) contrast(var(--ds-glass-contrast));
+}
+
+.filterDrawerHeader {
+  min-height: 60px;
+  color: var(--ds-ink);
+  background: transparent;
+  border-bottom: 1px solid var(--ds-glass-line);
 }
 
 .filterDrawerTitle {
   font-size: 18px;
   font-weight: 750;
+  letter-spacing: -.02em;
 }
 
 .filterDrawerBody {
-  padding-bottom: max(var(--mantine-spacing-lg), env(safe-area-inset-bottom));
+  padding-top: var(--ds-space-4);
+  padding-bottom: max(var(--ds-space-5), env(safe-area-inset-bottom));
+  background: var(--ds-paper);
 }
 
-@media (min-width: 48.01em) {
-  .mapFallback {
-    left: calc(var(--desktop-sidebar-offset) + var(--desktop-sidebar-width));
-  }
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .filterDrawer { background: var(--ds-paper); }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .filterDrawer { background: var(--ds-paper); -webkit-backdrop-filter: none; backdrop-filter: none; }
 }

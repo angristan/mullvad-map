@@ -2,7 +2,6 @@ import {
   Accordion,
   Badge,
   Box,
-  Divider,
   Drawer,
   Group,
   Paper,
@@ -44,9 +43,14 @@ export function LocationDetails({
       opened={opened}
       onClose={onClose}
       position={isMobile ? "bottom" : "right"}
-      size={isMobile ? "80%" : 440}
-      offset={isMobile ? 8 : 16}
-      radius="sm"
+      size={isMobile ? "62%" : 440}
+      offset={isMobile ? 8 : 12}
+      radius="lg"
+      withOverlay={false}
+      trapFocus={false}
+      lockScroll={false}
+      closeOnClickOutside={false}
+      returnFocus={false}
       title={
         <Group gap="sm" wrap="nowrap">
           <Text className={classes.flag} aria-hidden="true">
@@ -60,17 +64,15 @@ export function LocationDetails({
           </div>
         </Group>
       }
-      overlayProps={{ backgroundOpacity: 0.22 }}
       classNames={{ content: classes.content, header: classes.header, body: classes.body }}
     >
       <Stack gap="md" h="100%">
-        <SimpleGrid cols={4} spacing="xs">
+        <SimpleGrid cols={4} spacing="xs" className={classes.summaryGrid}>
           <Summary value={location.servers.length} label="Relays" />
           <Summary value={online} label="Online" />
           <Summary value={owned} label="Owned" />
           <Summary value={providers} label={providers === 1 ? "Provider" : "Providers"} />
         </SimpleGrid>
-        <Divider />
 
         {latency && (
           <Paper className={classes.latencyCard} p="sm" radius="sm">
@@ -79,7 +81,7 @@ export function LocationDetails({
                 <IconBolt size={18} />
                 <div>
                   <Text className={classes.latencyLabel}>Estimated latency</Text>
-                  <Text size="13px" c="gray.5" fw={600}>
+                  <Text size="13px" c="var(--ds-muted)" fw={600}>
                     Tested via {latency.serverHostname}
                   </Text>
                 </div>
@@ -114,7 +116,7 @@ function ServerItem({ server }: { server: RelayServer }) {
   return (
     <Accordion.Item value={server.hostname} className={classes.serverItem}>
       <Accordion.Control
-        icon={<span className={classes.status} data-online={server.active} />}
+        icon={<span className={classes.status} data-online={server.active} aria-hidden="true" />}
         className={classes.serverControl}
       >
         <Group justify="space-between" gap="xs" wrap="nowrap">
@@ -122,13 +124,18 @@ function ServerItem({ server }: { server: RelayServer }) {
             <Text size="sm" fw={750} truncate>
               {server.hostname}
             </Text>
-            <Text size="13px" c="gray.5" fw={600} truncate>
+            <Text size="13px" c="var(--ds-muted)" fw={600} truncate>
               {server.provider}
             </Text>
           </Box>
-          <Text size="13px" c="gray.5" fw={650} className={classes.speed}>
-            {server.speedGbps} Gbps
-          </Text>
+          <Group gap={7} wrap="nowrap">
+            <Text className={classes.statusText} data-online={server.active}>
+              {server.active ? "Online" : "Offline"}
+            </Text>
+            <Text size="13px" c="var(--ds-muted)" fw={650} className={classes.speed}>
+              {server.speedGbps} Gbps
+            </Text>
+          </Group>
         </Group>
       </Accordion.Control>
       <Accordion.Panel>
@@ -137,7 +144,7 @@ function ServerItem({ server }: { server: RelayServer }) {
             <Badge size="sm" variant="light">
               {server.type === "wireguard" ? "WireGuard" : "Bridge"}
             </Badge>
-            <Badge size="sm" variant="light" color={server.owned ? "relay" : "gray"}>
+            <Badge size="sm" variant="light" color={server.owned ? "sage" : "gray"}>
               {server.owned ? "Owned" : "Rented"}
             </Badge>
             {server.daita && (

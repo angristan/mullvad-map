@@ -28,6 +28,7 @@ const MAP_STYLE = "https://tiles.openfreemap.org/styles/fiord";
 type RelayMapProps = {
   locations: ReadonlyArray<FilteredLocation>;
   selectedKey: string | null;
+  detailsOpen: boolean;
   bestLatencyKey: string | null;
   latencyResults: ReadonlyMap<string, LatencyResult>;
   latencyScale: LatencyScale | null;
@@ -38,6 +39,7 @@ type RelayMapProps = {
 export default function RelayMap({
   locations,
   selectedKey,
+  detailsOpen,
   bestLatencyKey,
   latencyResults,
   latencyScale,
@@ -79,6 +81,20 @@ export default function RelayMap({
     mapRef.current = map;
     map.addControl(new NavigationControl({ showCompass: false }), "bottom-right");
 
+    const desktopLayout = window.matchMedia("(min-width: 56.26em)");
+    const syncMapPadding = () => {
+      const desktop = desktopLayout.matches;
+      map.setPadding({
+        top: 0,
+        right: 0,
+        bottom: desktop ? 0 : Math.min(200, Math.round(window.innerHeight * 0.24)),
+        left: desktop ? 472 : 0,
+      });
+    };
+    syncMapPadding();
+    desktopLayout.addEventListener("change", syncMapPadding);
+    window.addEventListener("resize", syncMapPadding);
+
     const timeout = window.setTimeout(() => setMapFailed(true), 12_000);
     let projectionConfigured = false;
     const onStyleData = () => {
@@ -106,9 +122,9 @@ export default function RelayMap({
           );
         }
         map.setSky({
-          "sky-color": "#02070d",
-          "horizon-color": "#173047",
-          "fog-color": "#101f35",
+          "sky-color": "#13100f",
+          "horizon-color": "#29413d",
+          "fog-color": "#2b211d",
           "fog-ground-blend": 0.72,
           "horizon-fog-blend": 0.55,
           "sky-horizon-blend": 0.68,
@@ -128,6 +144,8 @@ export default function RelayMap({
 
     return () => {
       window.clearTimeout(timeout);
+      desktopLayout.removeEventListener("change", syncMapPadding);
+      window.removeEventListener("resize", syncMapPadding);
       map.off("styledata", onStyleData);
       map.off("error", onError);
       mapRef.current = null;
@@ -217,13 +235,10 @@ export default function RelayMap({
         const element = markerElementsRef.current.get(location.key);
         if (!element) continue;
         const visible = isOnVisibleHemisphere(location, center);
-        element.tabIndex = visible ? 0 : -1;
-        if (visible) {
-          element.removeAttribute("aria-hidden");
-        } else {
-          element.setAttribute("aria-hidden", "true");
-          if (document.activeElement === element) element.blur();
-        }
+        element.tabIndex = -1;
+        element.setAttribute("aria-hidden", "true");
+        element.style.visibility = visible ? "visible" : "hidden";
+        if (document.activeElement === element) element.blur();
       }
     };
 
@@ -263,26 +278,29 @@ export default function RelayMap({
     const location = locations.find((item) => item.key === selectedKey);
     if (!location) return;
 
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     map.flyTo({
       center: [location.longitude, location.latitude],
       zoom: Math.max(map.getZoom(), 5.2),
-      duration: 850,
-      essential: true,
+      duration: reduceMotion ? 0 : 850,
+      essential: false,
     });
   }, [locations, selectedKey]);
 
   const latencyMode = latencyStatus === "probing" || latencyScale !== null;
 
   return (
-    <Box className={classes.root}>
+    <Box className={classes.root} data-details-open={detailsOpen}>
       <div
+        id="relay-map"
         ref={containerRef}
         className={classes.map}
+        tabIndex={-1}
         role="application"
-        aria-label="Interactive globe of Mullvad relay locations"
+        aria-label="Interactive globe of Mullvad relay locations. Use the location list to open relay details."
       />
 
-      <Paper className={classes.legend} radius="sm" px="sm" py={7} withBorder>
+      <Paper className={classes.legend} radius="md" px="sm" py={7} withBorder>
         <Stack gap={5}>
           {latencyMode ? (
             <LatencyGradientLegend
@@ -291,8 +309,8 @@ export default function RelayMap({
             />
           ) : (
             <Group gap="sm">
-              <LegendItem color="#57e389" label="All online" />
-              <LegendItem color="#ffb347" label="Has offline relays" />
+              <LegendItem color="var(--ds-sage)" label="All online" />
+              <LegendItem color="var(--ds-accent)" label="Has offline relays" />
             </Group>
           )}
           <CapacityLegend />
@@ -300,8 +318,8 @@ export default function RelayMap({
       </Paper>
 
       {mapFailed && (
-        <Paper className={classes.error} radius="sm" p="sm" withBorder role="alert">
-          <Text size="xs" c="yellow.2">
+        <Paper className={classes.error} radius="md" p="sm" withBorder role="alert">
+          <Text size="xs" c="var(--ds-accent)">
             The base map could not load. Search and relay details are still available.
           </Text>
         </Paper>
@@ -315,7 +333,7 @@ function CapacityLegend() {
     <Group className={classes.capacityLegend} gap={6} wrap="nowrap">
       <span className={classes.capacityDot} data-size="small" />
       <span className={classes.capacityDot} data-size="large" />
-      <Text size="12px" c="gray.3" fw={650}>
+      <Text size="12px" c="var(--ds-muted)" fw={650}>
         Active listed capacity
       </Text>
     </Group>
@@ -326,7 +344,7 @@ function LegendItem({ color, label }: { color: string; label: string }) {
   return (
     <Group gap={5} wrap="nowrap">
       <span className={classes.legendDot} style={{ backgroundColor: color }} />
-      <Text size="13px" c="gray.3" fw={650}>
+      <Text size="13px" c="var(--ds-muted)" fw={650}>
         {label}
       </Text>
     </Group>
@@ -343,8 +361,8 @@ function LatencyGradientLegend({
   if (!hasScale) {
     return (
       <Group gap={7} wrap="nowrap">
-        <span className={classes.legendDot} style={{ backgroundColor: "#64748b" }} />
-        <Text size="13px" c="gray.3" fw={650}>
+        <span className={classes.legendDot} style={{ backgroundColor: "var(--ds-subtle)" }} />
+        <Text size="13px" c="var(--ds-muted)" fw={650}>
           Testing all locations…
         </Text>
       </Group>
@@ -354,7 +372,7 @@ function LatencyGradientLegend({
   return (
     <Group gap="sm" wrap="nowrap">
       <div className={classes.gradientLegend}>
-        <Text size="12px" c="gray.3" fw={650}>
+        <Text size="12px" c="var(--ds-muted)" fw={650}>
           Faster
         </Text>
         <span
@@ -363,11 +381,11 @@ function LatencyGradientLegend({
             background: `linear-gradient(90deg, ${LATENCY_FAST_COLOR}, ${LATENCY_MID_COLOR}, ${LATENCY_SLOW_COLOR})`,
           }}
         />
-        <Text size="12px" c="gray.3" fw={650}>
+        <Text size="12px" c="var(--ds-muted)" fw={650}>
           Slower
         </Text>
       </div>
-      <LegendItem color="#64748b" label={testing ? "Pending" : "No result"} />
+      <LegendItem color="var(--ds-subtle)" label={testing ? "Pending" : "No result"} />
     </Group>
   );
 }
@@ -389,7 +407,7 @@ function applyLatencyNodeStyle(
   if (latencyMode) {
     element.style.setProperty(
       "--node-color",
-      latency && state.scale ? latencyColor(latency.estimatedMs, state.scale) : "#64748b",
+      latency && state.scale ? latencyColor(latency.estimatedMs, state.scale) : "var(--ds-subtle)",
     );
   } else {
     element.style.removeProperty("--node-color");
@@ -428,10 +446,10 @@ function makePopupContent({
   const color = latency && scale
     ? latencyColor(latency.estimatedMs, scale)
     : testing
-      ? "#64748b"
+      ? "var(--ds-subtle)"
       : offlineCount > 0
-        ? "#ffb347"
-        : "#57e389";
+        ? "var(--ds-accent)"
+        : "var(--ds-sage)";
   const root = document.createElement("div");
   root.className = "relay-popup-card";
   root.style.setProperty("--popup-color", color);

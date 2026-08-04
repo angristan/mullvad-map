@@ -4,19 +4,16 @@ import {
   Badge,
   Box,
   Button,
-  Divider,
   Drawer,
   Group,
   Loader,
   Paper,
   Popover,
   ScrollArea,
-  SimpleGrid,
   Skeleton,
   Stack,
   Text,
   TextInput,
-  ThemeIcon,
   Title,
   UnstyledButton,
 } from "@mantine/core";
@@ -29,6 +26,7 @@ import {
   IconInfoCircle,
   IconList,
   IconSearch,
+  IconWorldPin,
 } from "@tabler/icons-react";
 import { useEffect, useMemo, useState } from "react";
 import { countryFlag } from "../lib/country-flag";
@@ -50,6 +48,7 @@ import classes from "./Sidebar.module.css";
 
 type SidebarProps = {
   locations: ReadonlyArray<FilteredLocation>;
+  selectedKey: string | null;
   summary: { total: number; online: number; locations: number; countries: number };
   filters: FilterState;
   onFiltersChange: (filters: FilterState) => void;
@@ -73,6 +72,7 @@ type SidebarProps = {
 
 export function Sidebar({
   locations,
+  selectedKey,
   summary,
   filters,
   onFiltersChange,
@@ -132,13 +132,11 @@ export function Sidebar({
   };
 
   return (
-    <Paper component="aside" className={classes.panel} radius="md" p="md">
+    <Paper component="aside" className={classes.panel} radius="xl" p={20}>
       <Stack gap={0} h="100%">
         <Group justify="space-between" wrap="nowrap">
           <Group gap="sm" wrap="nowrap">
-            <ThemeIcon className={classes.brandMark} size={36} radius="sm">
-              M
-            </ThemeIcon>
+            <IconWorldPin className={classes.brandMark} size={24} aria-hidden="true" />
             <Title order={1} className={classes.title}>
               Mullvad Relay Map
             </Title>
@@ -150,9 +148,8 @@ export function Sidebar({
               href="https://github.com/angristan/mullvad-map"
               target="_blank"
               rel="noreferrer"
-              size={32}
-              variant="subtle"
-              color="gray"
+              size={36}
+              variant="default"
               aria-label="View source code on GitHub"
               title="View source code on GitHub"
             >
@@ -161,29 +158,16 @@ export function Sidebar({
           </Group>
         </Group>
 
-        <Box className={classes.hero}>
-          {loading ? (
-            <Skeleton height={13} width="70%" mt={5} />
-          ) : response ? (
-            <Group gap={6} mt={4}>
-              <Text size="xs" c="dark.2">
-                {summary.total.toLocaleString()} relays · updated {formatDate(response.data.sourceUpdatedAt)}
-              </Text>
-            </Group>
-          ) : null}
-        </Box>
+        <RelaySummary
+          summary={summary}
+          loading={loading}
+          updatedAt={response?.data.sourceUpdatedAt}
+        />
 
-        <Divider opacity={0.55} />
-        <SimpleGrid cols={3} spacing={0} className={classes.stats}>
-          <Stat value={summary.online} label="Online" online loading={loading} />
-          <Stat value={summary.locations} label="Locations" loading={loading} />
-          <Stat value={summary.countries} label="Countries" loading={loading} />
-        </SimpleGrid>
-        <Divider opacity={0.55} />
-
-        <Group gap="xs" mt="sm" wrap="nowrap">
+        <Group className={classes.searchToolbar} gap="sm" mt="md" wrap="nowrap">
           <TextInput
             className={classes.search}
+            label="Search relays"
             aria-label="Search relays"
             placeholder={isMobile ? "Search relays…" : "City, country, provider, hostname…"}
             leftSection={<IconSearch size={16} />}
@@ -194,9 +178,9 @@ export function Sidebar({
           {isMobile && (
             <>
               <ActionIcon
-                size={36}
-                variant="light"
-                color="relay"
+                size={40}
+                variant="default"
+                color="sage"
                 aria-label={`Browse ${locations.length} location${locations.length === 1 ? "" : "s"}`}
                 title="Browse locations"
                 disabled={loading}
@@ -213,8 +197,8 @@ export function Sidebar({
               />
               <LatencyInfo isMobile />
               <ActionIcon
-                size={36}
-                variant="light"
+                size={40}
+                variant="default"
                 aria-label="Open relay filters"
                 onClick={onOpenMobileFilters}
               >
@@ -244,7 +228,7 @@ export function Sidebar({
             <Text size="14px" fw={750} truncate>
               Best tested: {bestLocation.city}
             </Text>
-            <Badge size="sm" color="relay" variant="light">
+            <Badge size="sm" color="sage" variant="light">
               ~{bestLatency.estimatedMs} ms
             </Badge>
             <IconChevronRight size={14} />
@@ -275,11 +259,11 @@ export function Sidebar({
         )}
 
         {!isMobile && (
-          <Stack className={classes.locations} gap={0} mt="sm">
+          <Stack className={classes.locations} gap={0} mt="md">
             <Group className={classes.locationsHeader} justify="space-between" wrap="nowrap">
               <Text className={classes.sectionTitle}>Locations</Text>
               <Group gap="sm" wrap="nowrap">
-                <Text size="12px" c="gray.5" fw={650}>
+                <Text size="12px" c="var(--ds-subtle)" fw={650}>
                   {latencyStatus === "probing"
                     ? `${latencyCompleted}/${latencyTotal || "…"}`
                     : `${locations.length}`}
@@ -304,6 +288,7 @@ export function Sidebar({
             <ScrollArea className={classes.locationScroll} scrollbarSize={5} type="hover">
               <LocationRows
                 locations={sorted}
+                selectedKey={selectedKey}
                 loading={loading}
                 latencyResults={latencyResults}
                 latencyScale={latencyScale}
@@ -344,9 +329,9 @@ export function Sidebar({
           position="bottom"
           size="80%"
           offset={8}
-          radius="sm"
+          radius="lg"
           title={`Locations · ${locations.length}`}
-          overlayProps={{ backgroundOpacity: 0.22 }}
+          overlayProps={{ backgroundOpacity: 0.32, blur: 2 }}
           classNames={{
             content: classes.mobileLocationsContent,
             header: classes.mobileLocationsDrawerHeader,
@@ -378,6 +363,7 @@ export function Sidebar({
             >
               <LocationRows
                 locations={sorted}
+                selectedKey={selectedKey}
                 loading={loading}
                 latencyResults={latencyResults}
                 latencyScale={latencyScale}
@@ -411,17 +397,20 @@ function LatencyProbeControl({
   const label = hasLatency ? "Retest latency" : "Test latency";
 
   return isMobile ? (
-    <ActionIcon
-      size={36}
+    <Button
+      className={classes.mobileLatencyButton}
+      h={40}
       variant="light"
-      color="relay"
+      color="sage"
+      px={7}
+      leftSection={probing ? <Loader size={14} /> : <IconBolt size={16} />}
       aria-label={probing ? "Testing relay latency" : label}
       title={probing ? "Testing relay latency" : label}
       disabled={loading || probing}
       onClick={onStart}
     >
-      {probing ? <Loader size={15} /> : <IconBolt size={18} />}
-    </ActionIcon>
+      {probing ? "Testing" : hasLatency ? "Retest" : "Test"}
+    </Button>
   ) : (
     <Button
       className={classes.latencyTestButton}
@@ -429,7 +418,7 @@ function LatencyProbeControl({
       variant="default"
       px={9}
       leftSection={
-        probing ? <Loader size={11} /> : <IconBolt size={13} color="#57e389" />
+        probing ? <Loader size={11} /> : <IconBolt size={13} color="var(--ds-sage)" />
       }
       disabled={loading || probing}
       onClick={onStart}
@@ -444,16 +433,16 @@ function LatencyInfo({ isMobile = false }: { isMobile?: boolean }) {
     <Popover
       width={300}
       position={isMobile ? "bottom-end" : "right-start"}
-      radius="sm"
+      radius="lg"
       shadow="none"
       transitionProps={{ duration: 100 }}
       withArrow={false}
     >
       <Popover.Target>
         <ActionIcon
-          size={isMobile ? 36 : 24}
-          variant={isMobile ? "light" : "subtle"}
-          color="gray"
+          size={isMobile ? 40 : 26}
+          variant={isMobile ? "subtle" : "default"}
+          color="sky"
           aria-label="How estimated latency is computed"
           title="How estimated latency is computed"
         >
@@ -471,7 +460,7 @@ function LatencyInfo({ isMobile = false }: { isMobile?: boolean }) {
         <Text component="code" className={classes.latencyFormula}>
           estimated RTT = median duration ÷ 4
         </Text>
-        <Text size="xs" c="dark.2" mt={6}>
+        <Text size="xs" c="var(--ds-muted)" mt={6}>
           This ranks locations; it is not ICMP ping or VPN tunnel performance. TLS currently fails
           before HTTP, but browser and Mullvad port behavior can change.
         </Text>
@@ -480,36 +469,40 @@ function LatencyInfo({ isMobile = false }: { isMobile?: boolean }) {
   );
 }
 
-function Stat({
-  value,
-  label,
-  online = false,
+function RelaySummary({
+  summary,
   loading,
+  updatedAt,
 }: {
-  value: number;
-  label: string;
-  online?: boolean;
+  summary: SidebarProps["summary"];
   loading: boolean;
+  updatedAt: string | undefined;
 }) {
+  if (loading) return <Skeleton className={classes.summarySkeleton} height={30} />;
+  if (!updatedAt) return null;
+
   return (
-    <Box className={classes.stat}>
-      {loading ? <Skeleton height={26} width={54} /> : <Text className={classes.statValue}>{value}</Text>}
-      <Group gap={5} wrap="nowrap">
-        {online && <span className={classes.onlineDot} />}
-        <Text className={classes.statLabel}>{label}</Text>
-      </Group>
-    </Box>
+    <div className={classes.summary}>
+      <Text className={classes.summaryLine}>
+        <span className={classes.onlineDot} aria-hidden="true" />
+        <strong>{summary.online.toLocaleString()}</strong> online of {summary.total.toLocaleString()}
+        {" · "}{summary.locations} locations{" · "}{summary.countries} countries
+      </Text>
+      <Text className={classes.updatedAt}>Updated {formatDate(updatedAt)}</Text>
+    </div>
   );
 }
 
 function LocationRows({
   locations,
+  selectedKey,
   loading,
   latencyResults,
   latencyScale,
   onSelect,
 }: {
   locations: ReadonlyArray<FilteredLocation>;
+  selectedKey: string | null;
   loading: boolean;
   latencyResults: ReadonlyMap<string, LatencyResult>;
   latencyScale: LatencyScale | null;
@@ -527,14 +520,14 @@ function LocationRows({
 
   if (locations.length === 0) {
     return (
-      <Paper p="md" radius="md" className={classes.empty}>
+      <Box className={classes.empty}>
         <Text size="sm" fw={650}>
           No relays found
         </Text>
-        <Text size="xs" c="dark.2">
+        <Text size="xs" c="var(--ds-muted)">
           Try a broader search or reset the filters.
         </Text>
-      </Paper>
+      </Box>
     );
   }
 
@@ -542,6 +535,7 @@ function LocationRows({
     <LocationRow
       key={location.key}
       location={location}
+      selected={location.key === selectedKey}
       latency={latencyResults.get(location.key)}
       latencyScale={latencyScale}
       onSelect={onSelect}
@@ -599,11 +593,13 @@ function LocationTableHeader({
 
 function LocationRow({
   location,
+  selected,
   latency,
   latencyScale,
   onSelect,
 }: {
   location: FilteredLocation;
+  selected: boolean;
   latency?: LatencyResult;
   latencyScale: LatencyScale | null;
   onSelect: (key: string) => void;
@@ -612,6 +608,8 @@ function LocationRow({
   return (
     <UnstyledButton
       className={classes.locationRow}
+      data-selected={selected}
+      aria-current={selected ? "true" : undefined}
       aria-label={`${location.city}, ${location.country}: ${location.servers.length} relays, ${capacityGbps} Gbps listed capacity${
         latency ? `, approximately ${latency.estimatedMs} milliseconds` : ""
       }`}

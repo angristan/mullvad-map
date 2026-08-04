@@ -36,9 +36,9 @@ export function selectLatencyTargets(
   return targets;
 }
 
-export const LATENCY_FAST_COLOR = "#57e389";
-export const LATENCY_MID_COLOR = "#facc15";
-export const LATENCY_SLOW_COLOR = "#fb7185";
+export const LATENCY_FAST_COLOR = "#69c1b5";
+export const LATENCY_MID_COLOR = "#d98a62";
+export const LATENCY_SLOW_COLOR = "#f08770";
 
 export type LatencyScale = {
   low: number;
@@ -60,9 +60,9 @@ export function latencyColor(estimatedMs: number, scale: LatencyScale) {
   const range = high - low;
   const position = range > 0 ? clamp((Math.log1p(estimatedMs) - low) / range) : 0;
   if (position <= 0.5) {
-    return mixColor([87, 227, 137], [250, 204, 21], position * 2);
+    return mixColor([105, 193, 181], [217, 138, 98], position * 2);
   }
-  return mixColor([250, 204, 21], [251, 113, 133], (position - 0.5) * 2);
+  return mixColor([217, 138, 98], [240, 135, 112], (position - 0.5) * 2);
 }
 
 function quantile(sorted: ReadonlyArray<number>, percentile: number) {

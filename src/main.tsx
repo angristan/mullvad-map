@@ -1,44 +1,12 @@
 import "@fontsource-variable/manrope/wght.css";
-import { createTheme, MantineProvider } from "@mantine/core";
+import { MantineProvider } from "@mantine/core";
 import "@mantine/core/styles.css";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
 import "./global.css";
-
-const theme = createTheme({
-  primaryColor: "relay",
-  primaryShade: 5,
-  defaultRadius: "sm",
-  fontFamily: '"Manrope Variable", ui-sans-serif, sans-serif',
-  fontFamilyMonospace: '"Manrope Variable", ui-sans-serif, sans-serif',
-  fontSizes: {
-    xs: "13px",
-    sm: "14px",
-    md: "16px",
-    lg: "18px",
-    xl: "22px",
-  },
-  colors: {
-    relay: [
-      "#e9fff1",
-      "#d1fadd",
-      "#a9f3bf",
-      "#7bea9e",
-      "#5ae489",
-      "#48df7b",
-      "#35c96a",
-      "#25ad59",
-      "#138e46",
-      "#047437",
-    ],
-  },
-  headings: {
-    fontFamily: '"Manrope Variable", ui-sans-serif, sans-serif',
-    fontWeight: "800",
-  },
-});
+import { cssVariablesResolver, theme } from "./theme";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -54,7 +22,11 @@ if (!root) throw new Error("Missing #root application mount");
 createRoot(root).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <MantineProvider theme={theme} forceColorScheme="dark">
+      <MantineProvider
+        theme={theme}
+        cssVariablesResolver={cssVariablesResolver}
+        forceColorScheme="dark"
+      >
         <App />
       </MantineProvider>
     </QueryClientProvider>
