@@ -33,6 +33,19 @@ export function useLatencyProbe(locations: ReadonlyArray<FilteredLocation>) {
   const activeController = useRef<AbortController | null>(null);
   const locationScope = locations.map((location) => location.key).join("\u0000");
 
+  const stop = useCallback(() => {
+    const controller = activeController.current;
+    if (!controller) return;
+
+    controller.abort();
+    activeController.current = null;
+    setState((current) => ({
+      ...current,
+      status: current.results.size > 0 ? "success" : "idle",
+      error: "Latency test stopped.",
+    }));
+  }, []);
+
   const start = useCallback(async () => {
     activeController.current?.abort();
     const controller = new AbortController();
@@ -106,7 +119,7 @@ export function useLatencyProbe(locations: ReadonlyArray<FilteredLocation>) {
     [],
   );
 
-  return { ...state, start };
+  return { ...state, start, stop };
 }
 
 async function probeTarget(target: LatencyTarget, signal: AbortSignal) {

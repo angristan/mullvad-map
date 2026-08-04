@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   createLatencyScale,
   estimateLatency,
+  estimateLatencyProbeScope,
   latencyColor,
   selectLatencyTargets,
 } from "../src/lib/latency";
@@ -68,5 +69,6 @@ describe("latency estimation", () => {
         (target) => target.location.key,
       ),
     ).toEqual(["nl-ams", "fr-par"]);
+    expect(estimateLatencyProbeScope(locations)).toEqual({ locations: 2, connections: 6 });
   });
 });

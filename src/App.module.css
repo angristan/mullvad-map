@@ -1,6 +1,6 @@
 .root {
   --desktop-sidebar-offset: 12px;
-  --desktop-sidebar-width: 460px;
+  --desktop-sidebar-width: 420px;
 
   position: relative;
   width: 100%;

@@ -54,6 +54,7 @@ export default function RelayMap({
   const latencyStatusRef = useRef(latencyStatus);
   const bestLatencyKeyRef = useRef(bestLatencyKey);
   const selectedKeyRef = useRef(selectedKey);
+  const detailsOpenRef = useRef(detailsOpen);
   const [mapReady, setMapReady] = useState(false);
   const [mapFailed, setMapFailed] = useState(false);
 
@@ -62,6 +63,7 @@ export default function RelayMap({
   latencyStatusRef.current = latencyStatus;
   bestLatencyKeyRef.current = bestLatencyKey;
   selectedKeyRef.current = selectedKey;
+  detailsOpenRef.current = detailsOpen;
 
   useEffect(() => {
     const container = containerRef.current;
@@ -81,18 +83,8 @@ export default function RelayMap({
     mapRef.current = map;
     map.addControl(new NavigationControl({ showCompass: false }), "bottom-right");
 
-    const desktopLayout = window.matchMedia("(min-width: 56.26em)");
-    const syncMapPadding = () => {
-      const desktop = desktopLayout.matches;
-      map.setPadding({
-        top: 0,
-        right: 0,
-        bottom: desktop ? 0 : Math.min(200, Math.round(window.innerHeight * 0.24)),
-        left: desktop ? 472 : 0,
-      });
-    };
+    const syncMapPadding = () => map.setPadding(getMapPadding(detailsOpenRef.current));
     syncMapPadding();
-    desktopLayout.addEventListener("change", syncMapPadding);
     window.addEventListener("resize", syncMapPadding);
 
     const timeout = window.setTimeout(() => setMapFailed(true), 12_000);
@@ -144,7 +136,6 @@ export default function RelayMap({
 
     return () => {
       window.clearTimeout(timeout);
-      desktopLayout.removeEventListener("change", syncMapPadding);
       window.removeEventListener("resize", syncMapPadding);
       map.off("styledata", onStyleData);
       map.off("error", onError);
@@ -152,6 +143,12 @@ export default function RelayMap({
       map.remove();
     };
   }, []);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady) return;
+    map.setPadding(getMapPadding(detailsOpen));
+  }, [detailsOpen, mapReady]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -326,6 +323,28 @@ export default function RelayMap({
       )}
     </Box>
   );
+}
+
+function getMapPadding(detailsOpen: boolean) {
+  if (window.innerWidth >= 1_280) {
+    return { top: 0, right: detailsOpen ? 432 : 0, bottom: 0, left: 432 };
+  }
+
+  if (window.innerWidth <= 700) {
+    return {
+      top: 170,
+      right: 0,
+      bottom: detailsOpen ? Math.min(320, Math.round(window.innerHeight * 0.46)) : 0,
+      left: 0,
+    };
+  }
+
+  return {
+    top: 150,
+    right: 0,
+    bottom: detailsOpen ? Math.min(360, Math.round(window.innerHeight * 0.5)) : 0,
+    left: 0,
+  };
 }
 
 function CapacityLegend() {

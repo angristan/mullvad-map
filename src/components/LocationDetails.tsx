@@ -9,7 +9,6 @@ import {
   SimpleGrid,
   Stack,
   Text,
-  Title,
 } from "@mantine/core";
 import { IconBolt, IconServer } from "@tabler/icons-react";
 import { countryFlag } from "../lib/country-flag";
@@ -21,7 +20,7 @@ type LocationDetailsProps = {
   location: FilteredLocation | null;
   opened: boolean;
   onClose: () => void;
-  isMobile: boolean;
+  layoutMode: "mobile" | "intermediate" | "wide";
   latency: LatencyResult | null;
 };
 
@@ -29,7 +28,7 @@ export function LocationDetails({
   location,
   opened,
   onClose,
-  isMobile,
+  layoutMode,
   latency,
 }: LocationDetailsProps) {
   if (!location) return null;
@@ -42,15 +41,22 @@ export function LocationDetails({
     <Drawer
       opened={opened}
       onClose={onClose}
-      position={isMobile ? "bottom" : "right"}
-      size={isMobile ? "62%" : 440}
-      offset={isMobile ? 8 : 12}
+      position={layoutMode === "wide" ? "right" : "bottom"}
+      size={
+        layoutMode === "mobile"
+          ? "min(60%, calc(100% - 210px))"
+          : layoutMode === "intermediate"
+            ? "58%"
+            : 420
+      }
+      offset={layoutMode === "mobile" ? 8 : 12}
       radius="lg"
       withOverlay={false}
       trapFocus={false}
       lockScroll={false}
       closeOnClickOutside={false}
       returnFocus={false}
+      closeButtonProps={{ "aria-label": `Close details for ${location.city}, ${location.country}` }}
       title={
         <Group gap="sm" wrap="nowrap">
           <Text className={classes.flag} aria-hidden="true">
@@ -58,13 +64,18 @@ export function LocationDetails({
           </Text>
           <div>
             <Text className={classes.country}>{location.country}</Text>
-            <Title order={2} className={classes.city}>
+            <Text component="span" className={classes.city}>
               {location.city}
-            </Title>
+            </Text>
           </div>
         </Group>
       }
-      classNames={{ content: classes.content, header: classes.header, body: classes.body }}
+      classNames={{
+        inner: classes.inner,
+        content: classes.content,
+        header: classes.header,
+        body: classes.body,
+      }}
     >
       <Stack gap="md" h="100%">
         <SimpleGrid cols={4} spacing="xs" className={classes.summaryGrid}>

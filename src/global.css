@@ -199,13 +199,22 @@ select { font: inherit; }
 .maplibregl-ctrl-group button + button { border-top-color: var(--ds-glass-line); }
 .maplibregl-ctrl-group button span { filter: invert(87%) sepia(17%) saturate(357%) hue-rotate(335deg) brightness(103%); }
 
-.maplibregl-ctrl-attrib {
-  color: var(--ds-subtle);
-  background: color-mix(in srgb, var(--ds-panel) 78%, transparent) !important;
-  font-size: 10px !important;
+.maplibregl-map .maplibregl-ctrl-attrib {
+  color: var(--ds-muted) !important;
+  background: color-mix(in srgb, var(--ds-panel) 96%, transparent) !important;
+  font-size: 11px !important;
 }
 
-.maplibregl-ctrl-attrib a { color: var(--ds-muted); }
+.maplibregl-map .maplibregl-ctrl-attrib a {
+  color: var(--ds-ink) !important;
+  text-decoration-color: color-mix(in srgb, var(--ds-ink) 62%, transparent);
+  text-underline-offset: 2px;
+}
+
+.maplibregl-map .maplibregl-ctrl-attrib a:hover,
+.maplibregl-map .maplibregl-ctrl-attrib a:focus-visible {
+  color: var(--ds-sage) !important;
+}
 
 @supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
   .relay-popup .maplibregl-popup-content,

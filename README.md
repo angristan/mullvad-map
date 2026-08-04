@@ -14,9 +14,13 @@ An unofficial interactive map of Mullvad VPN infrastructure. Explore relay locat
 - Relay-level details including addresses, port speed, provider, STBoot, and notices
 - Cloudflare Worker API with runtime validation, KV caching, and native rate limiting
 
+## Design scope
+
+The map is intentionally dark-only. The Mantine color scheme, MapLibre style, globe atmosphere, markers, and translucent map chrome are tuned as one dark composition. A theme switch is not exposed because an accessible light map treatment is not yet designed or validated.
+
 ## Experimental latency testing
 
-Latency testing is manual and intended only for relative ranking. Starting a test makes three direct TLS connection attempts for each matching active WireGuard location. Tests run six locations at a time and time out after 2.5 seconds.
+Latency testing is manual and intended only for relative ranking. Before a run, the app shows the privacy consequence and estimated connection count and requires confirmation. Starting a test makes three direct TLS connection attempts for each matching active WireGuard location. Tests run six locations at a time, can be stopped, and time out after 2.5 seconds.
 
 For one relay in each location, the browser times expected-to-fail TLS connections to its literal IPv4 address on port 443:
 

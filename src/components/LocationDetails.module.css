@@ -115,7 +115,15 @@
   background: var(--ds-accent-surface);
 }
 
-@media (max-width: 56.25em) {
+@media (min-width: 43.76em) and (max-width: 79.99em) {
+  .inner { justify-content: flex-end; }
+  .content.content {
+    width: min(440px, calc(100% - 24px));
+    flex-basis: min(440px, calc(100% - 24px));
+  }
+}
+
+@media (max-width: 43.75em) {
   .header { min-height: 80px; padding: 14px 16px 12px; }
   .body { height: calc(100% - 80px); padding: 12px 14px 14px; }
   .flag { font-size: 24px; }

@@ -7,6 +7,7 @@ import {
   Drawer,
   Group,
   Loader,
+  Modal,
   Paper,
   Popover,
   ScrollArea,
@@ -25,6 +26,7 @@ import {
   IconChevronRight,
   IconInfoCircle,
   IconList,
+  IconPlayerStop,
   IconSearch,
   IconWorldPin,
 } from "@tabler/icons-react";
@@ -32,6 +34,7 @@ import { useEffect, useMemo, useState } from "react";
 import { countryFlag } from "../lib/country-flag";
 import { hasActiveFilters } from "../lib/filter-relays";
 import {
+  estimateLatencyProbeScope,
   latencyColor,
   type LatencyResult,
   type LatencyScale,
@@ -55,7 +58,7 @@ type SidebarProps = {
   onResetFilters: () => void;
   onSelect: (key: string) => void;
   onOpenMobileFilters: () => void;
-  isMobile: boolean;
+  compact: boolean;
   loading: boolean;
   fetching: boolean;
   error: Error | null;
@@ -68,6 +71,7 @@ type SidebarProps = {
   latencyTotal: number;
   latencyError: string | null;
   onTestLatency: () => void;
+  onStopLatency: () => void;
 };
 
 export function Sidebar({
@@ -79,7 +83,7 @@ export function Sidebar({
   onResetFilters,
   onSelect,
   onOpenMobileFilters,
-  isMobile,
+  compact,
   loading,
   fetching,
   error,
@@ -92,11 +96,13 @@ export function Sidebar({
   latencyTotal,
   latencyError,
   onTestLatency,
+  onStopLatency,
 }: SidebarProps) {
   const hasLatency = latencyResults.size > 0;
   const [sortKey, setSortKey] = useState<LocationSortKey>("relays");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [mobileLocationsOpened, setMobileLocationsOpened] = useState(false);
+  const [latencyConfirmOpened, setLatencyConfirmOpened] = useState(false);
   const sorted = useMemo(
     () => sortLocations(locations, sortKey, sortDirection, latencyResults),
     [latencyResults, locations, sortDirection, sortKey],
@@ -111,10 +117,16 @@ export function Sidebar({
   const bestLocation = bestLatency
     ? locations.find((location) => location.key === bestLatency.locationKey)
     : undefined;
+  const latencyProbeScope = useMemo(() => estimateLatencyProbeScope(locations), [locations]);
+  const activeFilterCount =
+    Number(filters.status !== "all") +
+    Number(filters.type !== "all") +
+    Number(filters.ownership !== "all") +
+    Number(filters.daitaOnly);
 
   useEffect(() => {
-    if (!isMobile) setMobileLocationsOpened(false);
-  }, [isMobile]);
+    if (!compact) setMobileLocationsOpened(false);
+  }, [compact]);
 
   const changeSort = (key: LocationSortKey) => {
     if (key === sortKey) {
@@ -125,7 +137,8 @@ export function Sidebar({
     setSortDirection(key === "name" || key === "latency" ? "asc" : "desc");
   };
 
-  const testLatency = () => {
+  const confirmLatencyTest = () => {
+    setLatencyConfirmOpened(false);
     setSortKey("latency");
     setSortDirection("asc");
     onTestLatency();
@@ -162,6 +175,7 @@ export function Sidebar({
           summary={summary}
           loading={loading}
           updatedAt={response?.data.sourceUpdatedAt}
+          cacheMeta={response?.meta}
         />
 
         <Group className={classes.searchToolbar} gap="sm" mt="md" wrap="nowrap">
@@ -169,46 +183,54 @@ export function Sidebar({
             className={classes.search}
             label="Search relays"
             aria-label="Search relays"
-            placeholder={isMobile ? "Search relays…" : "City, country, provider, hostname…"}
+            placeholder={compact ? "Search relays…" : "City, country, provider, hostname…"}
             leftSection={<IconSearch size={16} />}
-            rightSection={!isMobile ? <Text className={classes.hotkey}>/</Text> : undefined}
+            rightSection={!compact ? <Text className={classes.hotkey}>/</Text> : undefined}
             value={filters.query}
             onChange={(event) => onFiltersChange({ ...filters, query: event.currentTarget.value })}
           />
-          {isMobile && (
+          {compact && (
             <>
-              <ActionIcon
-                size={40}
-                variant="default"
+              <Button
+                className={classes.mobileLocationsButton}
+                h={40}
+                variant="filled"
                 color="sage"
+                leftSection={<IconList size={17} />}
                 aria-label={`Browse ${locations.length} location${locations.length === 1 ? "" : "s"}`}
-                title="Browse locations"
                 disabled={loading}
                 onClick={() => setMobileLocationsOpened(true)}
               >
-                <IconList size={18} />
-              </ActionIcon>
+                Locations
+              </Button>
               <LatencyProbeControl
-                isMobile
+                compact
                 status={latencyStatus}
                 hasLatency={hasLatency}
-                loading={loading}
-                onStart={testLatency}
+                loading={loading || latencyProbeScope.connections === 0}
+                onStart={() => setLatencyConfirmOpened(true)}
+                onStop={onStopLatency}
               />
-              <LatencyInfo isMobile />
               <ActionIcon
+                className={classes.mobileFilterButton}
+                data-active={activeFilterCount > 0}
                 size={40}
                 variant="default"
-                aria-label="Open relay filters"
+                aria-label={`Open relay filters${activeFilterCount > 0 ? `, ${activeFilterCount} active` : ""}`}
                 onClick={onOpenMobileFilters}
               >
                 <IconAdjustmentsHorizontal size={18} />
+                {activeFilterCount > 0 && (
+                  <span className={classes.mobileFilterCount} aria-hidden="true">
+                    {activeFilterCount}
+                  </span>
+                )}
               </ActionIcon>
             </>
           )}
         </Group>
 
-        {!isMobile && (
+        {!compact && (
           <Box mt="sm">
             <FilterControls
               filters={filters}
@@ -219,7 +241,7 @@ export function Sidebar({
           </Box>
         )}
 
-        {isMobile && bestLocation && bestLatency && (
+        {compact && bestLocation && bestLatency && (
           <UnstyledButton
             className={classes.bestLatency}
             onClick={() => onSelect(bestLocation.key)}
@@ -236,7 +258,7 @@ export function Sidebar({
         )}
 
         {latencyError && (
-          <Text className={classes.latencyError} mt={isMobile ? 6 : 8}>
+          <Text className={classes.latencyError} mt={compact ? 6 : 8}>
             {latencyError}
           </Text>
         )}
@@ -258,7 +280,7 @@ export function Sidebar({
           </Alert>
         )}
 
-        {!isMobile && (
+        {!compact && (
           <Stack className={classes.locations} gap={0} mt="md">
             <Group className={classes.locationsHeader} justify="space-between" wrap="nowrap">
               <Text className={classes.sectionTitle}>Locations</Text>
@@ -272,8 +294,9 @@ export function Sidebar({
                   <LatencyProbeControl
                     status={latencyStatus}
                     hasLatency={hasLatency}
-                    loading={loading}
-                    onStart={testLatency}
+                    loading={loading || latencyProbeScope.connections === 0}
+                    onStart={() => setLatencyConfirmOpened(true)}
+                    onStop={onStopLatency}
                   />
                   <LatencyInfo />
                 </Group>
@@ -322,7 +345,7 @@ export function Sidebar({
         </Group>
       </Stack>
 
-      {isMobile && (
+      {compact && (
         <Drawer
           opened={mobileLocationsOpened}
           onClose={() => setMobileLocationsOpened(false)}
@@ -331,6 +354,7 @@ export function Sidebar({
           offset={8}
           radius="lg"
           title={`Locations · ${locations.length}`}
+          closeButtonProps={{ "aria-label": "Close locations" }}
           overlayProps={{ backgroundOpacity: 0.32, blur: 2 }}
           classNames={{
             content: classes.mobileLocationsContent,
@@ -376,63 +400,118 @@ export function Sidebar({
           </Stack>
         </Drawer>
       )}
+
+      <Modal
+        opened={latencyConfirmOpened}
+        onClose={() => setLatencyConfirmOpened(false)}
+        centered
+        size="sm"
+        radius="lg"
+        title="Test relay latency?"
+        closeButtonProps={{ "aria-label": "Close latency test confirmation" }}
+        overlayProps={{ backgroundOpacity: 0.42, blur: 3 }}
+        classNames={{
+          content: classes.latencyConfirmContent,
+          header: classes.latencyConfirmHeader,
+          body: classes.latencyConfirmBody,
+        }}
+      >
+        <Stack gap="md">
+          <Alert color="sky" icon={<IconInfoCircle size={18} />} title="Privacy consequence">
+            Mullvad relays can observe your network egress IP and the timing of these attempts.
+          </Alert>
+          <Text size="sm" c="var(--ds-muted)">
+            This test will make up to {latencyProbeScope.connections.toLocaleString()} direct TLS
+            connection {latencyProbeScope.connections === 1 ? "attempt" : "attempts"} across{" "}
+            {latencyProbeScope.locations.toLocaleString()} matching WireGuard{" "}
+            {latencyProbeScope.locations === 1 ? "location" : "locations"}. It tests six locations
+            at a time and may take several seconds.
+          </Text>
+          <Text size="xs" c="var(--ds-subtle)">
+            The result ranks locations. It is not a ping or a VPN tunnel performance test.
+          </Text>
+          <Group justify="flex-end" gap="sm">
+            <Button variant="default" onClick={() => setLatencyConfirmOpened(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="filled"
+              color="sage"
+              disabled={latencyProbeScope.connections === 0}
+              onClick={confirmLatencyTest}
+            >
+              Start {latencyProbeScope.connections.toLocaleString()} connections
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
     </Paper>
   );
 }
 
 function LatencyProbeControl({
-  isMobile = false,
+  compact = false,
   status,
   hasLatency,
   loading,
   onStart,
+  onStop,
 }: {
-  isMobile?: boolean;
+  compact?: boolean;
   status: SidebarProps["latencyStatus"];
   hasLatency: boolean;
   loading: boolean;
   onStart: () => void;
+  onStop: () => void;
 }) {
   const probing = status === "probing";
   const label = hasLatency ? "Retest latency" : "Test latency";
 
-  return isMobile ? (
+  if (compact && !probing) {
+    return (
+      <ActionIcon
+        className={classes.mobileLatencyButton}
+        size={40}
+        variant="default"
+        color="sage"
+        aria-label={label}
+        title={label}
+        disabled={loading}
+        onClick={onStart}
+      >
+        <IconBolt size={17} />
+      </ActionIcon>
+    );
+  }
+
+  return (
     <Button
-      className={classes.mobileLatencyButton}
-      h={40}
-      variant="light"
-      color="sage"
-      px={7}
-      leftSection={probing ? <Loader size={14} /> : <IconBolt size={16} />}
-      aria-label={probing ? "Testing relay latency" : label}
-      title={probing ? "Testing relay latency" : label}
-      disabled={loading || probing}
-      onClick={onStart}
-    >
-      {probing ? "Testing" : hasLatency ? "Retest" : "Test"}
-    </Button>
-  ) : (
-    <Button
-      className={classes.latencyTestButton}
-      size="compact-sm"
-      variant="default"
-      px={9}
+      className={compact ? classes.mobileLatencyButton : classes.latencyTestButton}
+      h={compact ? 40 : undefined}
+      size={compact ? undefined : "compact-sm"}
+      variant={probing ? "light" : "default"}
+      color={probing ? "rust" : undefined}
+      px={compact ? 8 : 9}
       leftSection={
-        probing ? <Loader size={11} /> : <IconBolt size={13} color="var(--ds-sage)" />
+        probing ? (
+          <IconPlayerStop size={compact ? 16 : 13} />
+        ) : (
+          <IconBolt size={13} color="var(--ds-sage)" />
+        )
       }
-      disabled={loading || probing}
-      onClick={onStart}
+      disabled={!probing && loading}
+      onClick={probing ? onStop : onStart}
     >
-      {probing ? "Testing" : label}
+      {probing ? "Stop test" : label}
     </Button>
   );
 }
 
-function LatencyInfo({ isMobile = false }: { isMobile?: boolean }) {
+function LatencyInfo() {
   return (
     <Popover
       width={300}
-      position={isMobile ? "bottom-end" : "right-start"}
+      position="right-start"
       radius="lg"
       shadow="none"
       transitionProps={{ duration: 100 }}
@@ -440,13 +519,13 @@ function LatencyInfo({ isMobile = false }: { isMobile?: boolean }) {
     >
       <Popover.Target>
         <ActionIcon
-          size={isMobile ? 40 : 26}
-          variant={isMobile ? "subtle" : "default"}
+          size={26}
+          variant="default"
           color="sky"
           aria-label="How estimated latency is computed"
           title="How estimated latency is computed"
         >
-          <IconInfoCircle size={isMobile ? 18 : 14} />
+          <IconInfoCircle size={14} />
         </ActionIcon>
       </Popover.Target>
       <Popover.Dropdown className={classes.latencyInfo}>
@@ -473,10 +552,12 @@ function RelaySummary({
   summary,
   loading,
   updatedAt,
+  cacheMeta,
 }: {
   summary: SidebarProps["summary"];
   loading: boolean;
   updatedAt: string | undefined;
+  cacheMeta: RelayApiResponse["meta"] | undefined;
 }) {
   if (loading) return <Skeleton className={classes.summarySkeleton} height={30} />;
   if (!updatedAt) return null;
@@ -488,7 +569,14 @@ function RelaySummary({
         <strong>{summary.online.toLocaleString()}</strong> online of {summary.total.toLocaleString()}
         {" · "}{summary.locations} locations{" · "}{summary.countries} countries
       </Text>
-      <Text className={classes.updatedAt}>Updated {formatDate(updatedAt)}</Text>
+      <div className={classes.summaryMeta}>
+        <Text className={classes.updatedAt}>Updated {formatDate(updatedAt)}</Text>
+        {cacheMeta?.cache === "stale" && (
+          <Text className={classes.staleCache} role="status">
+            Cached data · {formatAge(cacheMeta.ageSeconds)} old
+          </Text>
+        )}
+      </div>
     </div>
   );
 }
@@ -660,5 +748,12 @@ function formatDate(value: string) {
     month: "short",
     year: "numeric",
   }).format(new Date(value));
+}
+
+function formatAge(ageSeconds: number) {
+  if (ageSeconds < 60) return "less than a minute";
+  if (ageSeconds < 3_600) return `${Math.floor(ageSeconds / 60)}m`;
+  if (ageSeconds < 86_400) return `${Math.floor(ageSeconds / 3_600)}h`;
+  return `${Math.floor(ageSeconds / 86_400)}d`;
 }
 

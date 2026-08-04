@@ -16,6 +16,17 @@ export type LatencyResult = {
   samples: ReadonlyArray<number>;
 };
 
+export function estimateLatencyProbeScope(locations: ReadonlyArray<FilteredLocation>) {
+  const locationsWithTargets = locations.filter((location) =>
+    location.servers.some((server) => server.active && server.type === "wireguard"),
+  ).length;
+
+  return {
+    locations: locationsWithTargets,
+    connections: locationsWithTargets * LATENCY_PROBE_COUNT,
+  };
+}
+
 export function selectLatencyTargets(
   locations: ReadonlyArray<FilteredLocation>,
   orderedKeys: ReadonlyArray<string>,

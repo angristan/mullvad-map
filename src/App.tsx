@@ -9,27 +9,29 @@ import { Sidebar } from "./components/Sidebar";
 import { useLatencyProbe } from "./hooks/use-latency-probe";
 import { filterLocations, hasActiveFilters, summarizeLocations } from "./lib/filter-relays";
 import { createLatencyScale } from "./lib/latency";
+import {
+  DEFAULT_FILTERS,
+  parseAppUrlState,
+  serializeAppUrlState,
+} from "./lib/url-state";
 import type { FilterState } from "./shared/relay";
 import classes from "./App.module.css";
 
 const RelayMap = lazy(() => import("./components/RelayMap"));
 
-const DEFAULT_FILTERS: FilterState = {
-  query: "",
-  status: "all",
-  type: "all",
-  ownership: "all",
-  daitaOnly: false,
-};
-
 export function App() {
   const query = useQuery(relayQueryOptions());
-  const isMobile = useMediaQuery("(max-width: 56.25em)", false, {
+  const isMobile = useMediaQuery("(max-width: 43.75em)", false, {
     getInitialValueInEffect: false,
   });
-  const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
-  const [selectedKey, setSelectedKey] = useState<string | null>(null);
-  const [detailsOpened, { open: openDetails, close: closeDetails }] = useDisclosure(false);
+  const isWide = useMediaQuery("(min-width: 80em)", false, {
+    getInitialValueInEffect: false,
+  });
+  const layoutMode = isMobile ? "mobile" : isWide ? "wide" : "intermediate";
+  const compact = layoutMode !== "wide";
+  const initialUrlState = useMemo(() => parseAppUrlState(window.location.search), []);
+  const [filters, setFilters] = useState<FilterState>(initialUrlState.filters);
+  const [selectedKey, setSelectedKey] = useState<string | null>(initialUrlState.selectedKey);
   const [filtersOpened, { open: openMobileFilters, close: closeMobileFilters }] = useDisclosure(false);
 
   const locations = query.data?.data.locations ?? [];
@@ -55,26 +57,70 @@ export function App() {
     [filteredLocations, selectedKey],
   );
 
+  const writeUrlState = useCallback(
+    (nextFilters: FilterState, nextSelectedKey: string | null, mode: "push" | "replace") => {
+      const search = serializeAppUrlState(window.location.search, {
+        filters: nextFilters,
+        selectedKey: nextSelectedKey,
+      });
+      window.history[mode === "push" ? "pushState" : "replaceState"](
+        null,
+        "",
+        `${window.location.pathname}${search}${window.location.hash}`,
+      );
+    },
+    [],
+  );
+
   const selectLocation = useCallback(
     (key: string) => {
       setSelectedKey(key);
-      openDetails();
+      writeUrlState(filters, key, "push");
     },
-    [openDetails],
+    [filters, writeUrlState],
   );
 
-  const resetFilters = useCallback(() => setFilters(DEFAULT_FILTERS), []);
+  const closeLocation = useCallback(() => {
+    setSelectedKey(null);
+    writeUrlState(filters, null, "push");
+  }, [filters, writeUrlState]);
+
+  const changeFilters = useCallback(
+    (nextFilters: FilterState) => {
+      const onlyQueryChanged =
+        nextFilters.query !== filters.query &&
+        nextFilters.status === filters.status &&
+        nextFilters.type === filters.type &&
+        nextFilters.ownership === filters.ownership &&
+        nextFilters.daitaOnly === filters.daitaOnly;
+      setFilters(nextFilters);
+      writeUrlState(nextFilters, selectedKey, onlyQueryChanged ? "replace" : "push");
+    },
+    [filters, selectedKey, writeUrlState],
+  );
+
+  const resetFilters = useCallback(() => changeFilters(DEFAULT_FILTERS), [changeFilters]);
 
   useEffect(() => {
-    if (selectedKey !== null && selectedLocation === null) {
+    const restoreUrlState = () => {
+      const restored = parseAppUrlState(window.location.search);
+      setFilters(restored.filters);
+      setSelectedKey(restored.selectedKey);
+    };
+    window.addEventListener("popstate", restoreUrlState);
+    return () => window.removeEventListener("popstate", restoreUrlState);
+  }, []);
+
+  useEffect(() => {
+    if (query.isSuccess && selectedKey !== null && selectedLocation === null) {
       setSelectedKey(null);
-      closeDetails();
+      writeUrlState(filters, null, "replace");
     }
-  }, [closeDetails, selectedKey, selectedLocation]);
+  }, [filters, query.isSuccess, selectedKey, selectedLocation, writeUrlState]);
 
   useEffect(() => {
-    if (!isMobile && filtersOpened) closeMobileFilters();
-  }, [closeMobileFilters, filtersOpened, isMobile]);
+    if (!compact && filtersOpened) closeMobileFilters();
+  }, [closeMobileFilters, compact, filtersOpened]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -82,13 +128,13 @@ export function App() {
         event.preventDefault();
         document.querySelector<HTMLInputElement>('[aria-label="Search relays"]')?.focus();
       }
-      if (event.key === "Escape" && !detailsOpened && filters.query) {
-        setFilters((current) => ({ ...current, query: "" }));
+      if (event.key === "Escape" && selectedKey === null && filters.query) {
+        changeFilters({ ...filters, query: "" });
       }
     };
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [detailsOpened, filters.query]);
+  }, [changeFilters, filters, selectedKey]);
 
   return (
     <Box className={classes.root}>
@@ -101,11 +147,11 @@ export function App() {
         selectedKey={selectedKey}
         summary={summary}
         filters={filters}
-        onFiltersChange={setFilters}
+        onFiltersChange={changeFilters}
         onResetFilters={resetFilters}
         onSelect={selectLocation}
         onOpenMobileFilters={openMobileFilters}
-        isMobile={isMobile}
+        compact={compact}
         loading={query.isPending}
         fetching={query.isFetching}
         error={query.error instanceof Error ? query.error : null}
@@ -118,13 +164,14 @@ export function App() {
         latencyTotal={latency.total}
         latencyError={latency.error}
         onTestLatency={() => void latency.start()}
+        onStopLatency={latency.stop}
       />
 
       <Suspense fallback={<MapFallback />}>
         <RelayMap
           locations={filteredLocations}
           selectedKey={selectedKey}
-          detailsOpen={detailsOpened && selectedLocation !== null}
+          detailsOpen={selectedLocation !== null}
           bestLatencyKey={bestLatency?.locationKey ?? null}
           latencyResults={latency.results}
           latencyScale={latencyScale}
@@ -135,20 +182,21 @@ export function App() {
 
       <LocationDetails
         location={selectedLocation}
-        opened={detailsOpened && selectedLocation !== null}
-        onClose={closeDetails}
-        isMobile={isMobile}
+        opened={selectedLocation !== null}
+        onClose={closeLocation}
+        layoutMode={layoutMode}
         latency={selectedKey ? (latency.results.get(selectedKey) ?? null) : null}
       />
 
       <Drawer
-        opened={filtersOpened && isMobile}
+        opened={filtersOpened && compact}
         onClose={closeMobileFilters}
         position="bottom"
         size={330}
         offset={8}
         radius="lg"
         title="Filter relays"
+        closeButtonProps={{ "aria-label": "Close relay filters" }}
         overlayProps={{ backgroundOpacity: 0.32, blur: 2 }}
         classNames={{
           content: classes.filterDrawer,
@@ -159,7 +207,7 @@ export function App() {
       >
         <FilterControls
           filters={filters}
-          onChange={setFilters}
+          onChange={changeFilters}
           onReset={resetFilters}
           showReset={hasActiveFilters(filters)}
         />
